@@ -23,13 +23,13 @@ GRAPH_DIR        = os.path.join(AML_OUTPUT_DIR, "graph")
 CHUNK_SIZE = 500_000
 
 # ── Split strategy ───────────────────────────────────────────
-# Random stratified split (80/10/10)
-# NOTE: Temporal split doesn't work for this dataset because
-#       99.9% of transactions are on days 1-10 and later days
-#       contain almost exclusively laundering edges.
-TRAIN_RATIO = 0.80
-VAL_RATIO   = 0.10
-TEST_RATIO  = 0.10
+# Strict chronological split on September 2022:
+#   Train : Sept  1 –  8  (days 1-8)
+#   Val   : Sept  9       (day 9)
+#   Test  : Sept 10 – 18  (days 10-18)
+TRAIN_END_DAY = 8     # last day (inclusive) for training
+VAL_DAY       = 9     # single validation day
+TEST_START_DAY = 10   # first day (inclusive) for testing
 
 # ── Feature dimensions ──────────────────────────────────────
 ACCOUNT_FEAT_DIM = 8    # account node features
@@ -47,7 +47,7 @@ BATCH_SIZE       = 1024
 NUM_NEIGHBORS    = [15, 10]
 LEARNING_RATE    = 1e-3
 WEIGHT_DECAY     = 1e-4
-EPOCHS           = 50
+EPOCHS           = 2
 EARLY_STOP_PAT   = 10
 LR_SCHED_PAT     = 5
 
