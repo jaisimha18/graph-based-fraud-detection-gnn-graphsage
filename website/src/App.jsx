@@ -2,6 +2,7 @@ import Hero from './components/Hero';
 import Methodology from './components/Methodology';
 import ResultsDashboard from './components/ResultsDashboard';
 import Insights from './components/Insights';
+import TransactionAnalysis from './components/TransactionAnalysis';
 import './App.css';
 
 export default function App() {
@@ -17,12 +18,15 @@ export default function App() {
             <a href="#methodology">Methodology</a>
             <a href="#results">Results</a>
             <a href="#insights">Insights</a>
+            <a href="#transaction-analysis">Analysis</a>
           </div>
         </div>
       </nav>
 
       {/* Main Sections */}
       <Hero />
+      <hr className="section-divider" />
+      <TransactionAnalysis />
       <hr className="section-divider" />
       <Methodology />
       <hr className="section-divider" />
