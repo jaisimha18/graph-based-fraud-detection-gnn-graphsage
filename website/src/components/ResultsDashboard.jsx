@@ -3,35 +3,35 @@ import { TrendingUp, Target, AlertTriangle } from 'lucide-react';
 import './ResultsDashboard.css';
 
 const patternData = [
-  { name: 'CYCLE', recall: 80.0, color: '#38bdf8' },
-  { name: 'BIPARTITE', recall: 80.0, color: '#22d3ee' },
-  { name: 'FAN-IN', recall: 80.0, color: '#34d399' },
-  { name: 'FAN-OUT', recall: 78.9, color: '#a78bfa' },
-  { name: 'SCATTER-GATHER', recall: 77.5, color: '#fbbf24' },
-  { name: 'GATHER-SCATTER', recall: 76.0, color: '#fb7185' },
-  { name: 'STACK', recall: 75.0, color: '#f97316' },
-  { name: 'RANDOM', recall: 72.0, color: '#64748b' },
+  { name: 'CYCLE', recall: 100.0, color: '#38bdf8' },
+  { name: 'GATHER-SCATTER', recall: 100.0, color: '#fb7185' },
+  { name: 'SCATTER-GATHER', recall: 100.0, color: '#fbbf24' },
+  { name: 'FAN-IN', recall: 100.0, color: '#34d399' },
+  { name: 'RANDOM', recall: 100.0, color: '#64748b' },
+  { name: 'FAN-OUT', recall: 96.4, color: '#a78bfa' },
+  { name: 'STACK', recall: 96.4, color: '#f97316' },
+  { name: 'BIPARTITE', recall: 95.7, color: '#22d3ee' },
 ];
 
 const metrics = [
   {
     label: 'Pattern Recall',
-    value: '78.6%',
-    subtext: '220 / 280 patterns detected',
+    value: '98.7%',
+    subtext: '226 / 229 test patterns detected',
     icon: Target,
     color: 'var(--accent-emerald)',
   },
   {
     label: 'ROC-AUC',
-    value: '0.94',
+    value: '0.985',
     subtext: 'Global class separation',
     icon: TrendingUp,
     color: 'var(--accent-blue)',
   },
   {
-    label: 'Imbalance Ratio',
-    value: '979:1',
-    subtext: 'Fraud vs legitimate ratio',
+    label: 'PR-AUC',
+    value: '0.309',
+    subtext: 'High-imbalance precision/recall',
     icon: AlertTriangle,
     color: 'var(--accent-amber)',
   },

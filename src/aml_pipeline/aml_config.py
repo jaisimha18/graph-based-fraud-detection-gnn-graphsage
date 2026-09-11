@@ -47,7 +47,7 @@ BATCH_SIZE       = 1024
 NUM_NEIGHBORS    = [15, 10]
 LEARNING_RATE    = 1e-3
 WEIGHT_DECAY     = 1e-4
-EPOCHS           = 2
+EPOCHS           = 50
 EARLY_STOP_PAT   = 10
 LR_SCHED_PAT     = 5
 
