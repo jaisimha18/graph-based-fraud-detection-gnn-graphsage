@@ -1,6 +1,10 @@
+# OS files
 .DS_Store
+**/.DS_Store
+
+# Large datasets (not tracked — see docs/SETUP.md for download instructions)
 data/transactions.csv
-AML_DATASET
+AML_DATASET/
 outputs/
 # Byte-compiled / optimized / DLL files
 __pycache__/
