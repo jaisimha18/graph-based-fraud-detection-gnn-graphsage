@@ -309,15 +309,28 @@ def compute_pattern_recall(
         to_acc = idx_to_account.get(to_idx, "")
         all_test_edges.add((from_acc, to_acc))
 
-    # Evaluate each pattern
-    results_by_type = {}  # pattern_type -> {total, detected}
+    # Evaluate each pattern with multi-level completeness metrics
+    # Level 1: Any edge detected (>= 1 edge) - Early alert
+    # Level 2: Majority ring detected (>= 50% edges) - Ring disrupted
+    # Level 3: Complete ring detected (100% edges) - Complete dismantling
+    # Level 4: Mean edge coverage percentage across all rings
+    results_by_type = {}  # pattern_type -> stats dict
     total_patterns_in_test = 0
-    detected_patterns = 0
+    overall_any = 0
+    overall_majority = 0
+    overall_full = 0
+    overall_coverage_sum = 0.0
 
     for pat in patterns:
         ptype = pat["pattern_type"]
         if ptype not in results_by_type:
-            results_by_type[ptype] = {"total": 0, "detected": 0}
+            results_by_type[ptype] = {
+                "total": 0,
+                "detected_any": 0,
+                "detected_majority": 0,
+                "detected_full": 0,
+                "coverage_sum": 0.0,
+            }
 
         # Find which of this pattern's transactions are in the test set
         pattern_test_edges = []
@@ -330,49 +343,82 @@ def compute_pattern_recall(
         if not pattern_test_edges:
             continue
 
+        n_pattern_edges = len(pattern_test_edges)
+        n_detected_edges = sum(1 for e in pattern_test_edges if e in predicted_positive_edges)
+        coverage_ratio = n_detected_edges / n_pattern_edges
+
         total_patterns_in_test += 1
         results_by_type[ptype]["total"] += 1
+        results_by_type[ptype]["coverage_sum"] += coverage_ratio
+        overall_coverage_sum += coverage_ratio
 
-        # Pattern is detected if ANY of its test edges were predicted positive
-        detected = any(e in predicted_positive_edges for e in pattern_test_edges)
-        if detected:
-            detected_patterns += 1
-            results_by_type[ptype]["detected"] += 1
+        if n_detected_edges >= 1:
+            overall_any += 1
+            results_by_type[ptype]["detected_any"] += 1
 
-    # Print results
+        if coverage_ratio >= 0.5:
+            overall_majority += 1
+            results_by_type[ptype]["detected_majority"] += 1
+
+        if coverage_ratio == 1.0:
+            overall_full += 1
+            results_by_type[ptype]["detected_full"] += 1
+
+    # Print comprehensive table
     print(f"  Patterns with ≥1 test edge: {total_patterns_in_test}")
-    print(f"\n  {'Pattern Type':<20} {'In Test':>8} {'Detected':>10} {'Recall':>10}")
-    print(f"  {'-'*52}")
+    print(f"\n  {'Pattern Type':<16} {'Total':>6} {'Any(≥1)':>10} {'Maj(≥50%)':>12} {'Full(100%)':>12} {'Mean Cov':>10}")
+    print(f"  {'-'*70}")
     for ptype in sorted(results_by_type.keys()):
         r = results_by_type[ptype]
         if r["total"] > 0:
-            recall = r["detected"] / r["total"] * 100
-            print(f"  {ptype:<20} {r['total']:>8} {r['detected']:>10} {recall:>9.1f}%")
+            tot = r["total"]
+            rec_any = r["detected_any"] / tot * 100
+            rec_maj = r["detected_majority"] / tot * 100
+            rec_full = r["detected_full"] / tot * 100
+            mean_cov = r["coverage_sum"] / tot * 100
+            print(f"  {ptype:<16} {tot:>6} {rec_any:>9.1f}% {rec_maj:>11.1f}% {rec_full:>11.1f}% {mean_cov:>9.1f}%")
 
-    overall_recall = (
-        detected_patterns / total_patterns_in_test * 100
-        if total_patterns_in_test > 0 else 0.0
-    )
-    print(f"  {'-'*52}")
-    print(f"  {'OVERALL':<20} {total_patterns_in_test:>8} {detected_patterns:>10} {overall_recall:>9.1f}%")
-    print(f"\n  Pattern-level recall: {overall_recall:.1f}%")
+    tot = max(total_patterns_in_test, 1)
+    rec_any_all = overall_any / tot * 100
+    rec_maj_all = overall_majority / tot * 100
+    rec_full_all = overall_full / tot * 100
+    mean_cov_all = overall_coverage_sum / tot * 100
+
+    print(f"  {'-'*70}")
+    print(f"  {'OVERALL':<16} {tot:>6} {rec_any_all:>9.1f}% {rec_maj_all:>11.1f}% {rec_full_all:>11.1f}% {mean_cov_all:>9.1f}%")
+    print(f"\n  Summary: Alert Recall: {rec_any_all:.1f}% | Majority Ring Recall: {rec_maj_all:.1f}% | Complete Ring: {rec_full_all:.1f}%")
     print("=" * 60)
 
     # Build return dict
     pattern_recall_data = {
         "overall": {
             "total_in_test": total_patterns_in_test,
-            "detected": detected_patterns,
-            "recall": round(overall_recall, 2),
+            "detected": overall_any,
+            "recall": round(rec_any_all, 2),
+            "detected_any": overall_any,
+            "recall_any": round(rec_any_all, 2),
+            "detected_majority": overall_majority,
+            "recall_majority": round(rec_maj_all, 2),
+            "detected_full": overall_full,
+            "recall_full": round(rec_full_all, 2),
+            "mean_coverage": round(mean_cov_all, 2),
         },
         "by_type": {},
     }
     for ptype, r in results_by_type.items():
         if r["total"] > 0:
+            tot = r["total"]
             pattern_recall_data["by_type"][ptype] = {
-                "total": r["total"],
-                "detected": r["detected"],
-                "recall": round(r["detected"] / r["total"] * 100, 2),
+                "total": tot,
+                "detected": r["detected_any"],
+                "recall": round(r["detected_any"] / tot * 100, 2),
+                "detected_any": r["detected_any"],
+                "recall_any": round(r["detected_any"] / tot * 100, 2),
+                "detected_majority": r["detected_majority"],
+                "recall_majority": round(r["detected_majority"] / tot * 100, 2),
+                "detected_full": r["detected_full"],
+                "recall_full": round(r["detected_full"] / tot * 100, 2),
+                "mean_coverage": round(r["coverage_sum"] / tot * 100, 2),
             }
 
     return pattern_recall_data
