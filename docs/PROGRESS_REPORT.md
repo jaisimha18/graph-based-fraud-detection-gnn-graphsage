@@ -200,31 +200,62 @@ python -m src.aml_pipeline.eda_cycles
 
 ---
 
-## Summary of All Changes
+## 5. Phase 3: Cycle Awareness Architecture & Scientific Ablation Study
 
-| File | Action | Lines |
-|------|--------|-------|
-| `src/aml_pipeline/aml_config.py` | Modified | Split strategy constants |
-| `src/aml_pipeline/preprocess.py` | Rewritten | ~330 lines (full rewrite) |
-| `src/training/evaluate_aml.py` | Extended | +195 lines (pattern recall) |
-| `src/aml_pipeline/eda_cycles.py` | **New** | 335 lines (cycle EDA) |
+Following Dr. Anbazhagan M's architectural review, Phase 3 transitioned the AML GraphSAGE system from a vanilla neighborhood aggregator to a cycle-aware topological network designed to completely dismantle laundering rings.
 
-## Validation Status
+### Step 1: Evaluation Rigor Enhancement (Ring Completeness)
+Standard binary edge recall and alert recall (catching $\ge 1$ transaction in a pattern) mask a critical operational failure: **partial evasion**. If an AML ring contains 10 hops and a bank only freezes 1 hop, the syndicate reroutes funds through the remaining 9 hops.
+We implemented a 4-level evaluation hierarchy in `src/training/evaluate_aml.py`:
+1. **Alert Recall ($\ge 1$ edge)**: Traditional operational alert metric.
+2. **Majority Ring Recall ($\ge 50\%$)**: Majority of ring disrupted.
+3. **Complete Ring Recall ($100\%$)**: Every edge in the laundering pattern detected (full ring dismantled).
+4. **Mean Edge Coverage**: Average percentage of ring edges caught.
 
-| Check | Status |
-|-------|--------|
-| All files pass Python syntax validation | ✅ |
-| `eda_cycles.py` runs successfully on HI-Small_Patterns.txt | ✅ |
-| All 370 patterns parsed correctly (8 types) | ✅ |
-| Pattern parser handles all header formats (with/without colon) | ✅ |
-
-## Next Steps
-
-> **Important:** The full pipeline must be re-run since preprocessing and split strategy changed:
-> ```bash
-> python -m src.aml_pipeline.preprocess     # Re-preprocess with new split
-> python -m src.aml_pipeline.build_graph     # Rebuild PyG graph
-> python run_aml_training.py                 # Re-train + evaluate (includes pattern recall)
-> ```
+On Vanilla GraphSAGE, this revealed a **23.1% evasion gap**: while alert recall was 98.7%, full ring recall was only 76.9%.
 
 ---
+
+### Step 2: Component A — $N$-Step Random Walk Cycle Feature Extractor
+Implemented in `src/aml_pipeline/cycle_features.py`:
+- Formulates $k$-step return probabilities via matrix powers $P^k$ where $P = D_{out}^{-1} A$ is the row-stochastic transition matrix.
+- For directed edge $(u \to v)$, return probability is $R_k(u, v) = [P^k]_{v, u}$ for $k \in \{2, 3, 4, 5\}$.
+- Computes discounted cumulative return $R_{disc} = R_2 + 0.8 R_3 + 0.64 R_4 + 0.512 R_5$ and binary existence indicators.
+- **Strict Zero-Leakage Guarantee**: Transition matrix powers for training edges use *only* Days 1–8 topology. Validation and test edge features use historical graphs up to Days 9 and 18 respectively.
+- Augmented PyG graph saved to `outputs/aml/graph/aml_graph_cycle.pt` (edge feature dimension expanded from 14 to 22).
+
+---
+
+### Step 3: Component B — Cycle-Aware Attention Layer (`CycleAwareSAGEConv`)
+Implemented in `src/models/cycle_graphsage_model.py`:
+- Standard GraphSAGE aggregates neighbor embeddings using unweighted mean aggregation, diluting cyclical signals.
+- `CycleAwareSAGEConv` computes an edge-conditioned structural attention weight:
+  $$\alpha_{j, i} = \text{Softmax}_j \left( \text{LeakyReLU}(W_\alpha [h_i \,\|\, h_j \,\|\, e_{j \to i}^{cycle}]) \right)$$
+- Prioritizes message passing along high-return cyclical transaction paths before applying the GraphSAGE aggregation and target edge MLP classification.
+
+---
+
+### Step 4: Scalable Dynamic Negative Sampling Pipeline
+Implemented in `src/training/train_cycle_aml.py`:
+- Training on the complete un-sampled 4.06M training edges took ~20 minutes per epoch.
+- Implemented dynamic per-epoch negative sampling (25x negatives per epoch against all 4,142 training fraud edges).
+- Reduces epoch time to **~18 seconds** on Apple Silicon MPS while preserving 100% of fraud patterns and scanning new negative edges on every epoch.
+- Validation and testing remain completely un-sampled across all holdout transactions.
+
+---
+
+### Empirical Ablation Study Results (Held-Out Test Set: Days 10–18)
+
+Evaluated via `python predict.py --ablation`:
+
+| Configuration | ROC-AUC | PR-AUC | Fraud Recall | Alert Recall ($\ge 1$) | Majority Ring ($\ge 50\%$) | Complete Ring ($100\%$) |
+|---|:---:|:---:|:---:|:---:|:---:|:---:|
+| **1. Vanilla GraphSAGE** | 0.9852 | 0.3235 | 87.4% | 98.7% | 97.8% | 76.9% |
+| **2. + RW Cycle Features** | 0.9704 | 0.1113 | 75.3% | 96.1% | 92.6% | 63.8% |
+| **3. + Cycle Attention (Full)** | **0.9889** | **0.5759** | **87.7%** | **98.7%** | **98.2%** | **85.2%** |
+
+### Key Findings & Insights:
+1. **Dramatic PR-AUC Leap (+78.0% relative gain)**: In extreme transaction imbalance ($<0.1\%$ fraud), PR-AUC jumped from 0.3235 to **0.5759**, demonstrating superior false-positive rejection.
+2. **Complete Ring Dismantling (+8.3% absolute gain)**: Full ring dismantling surged from 76.9% to **85.2%** (with Cycle-type patterns reaching 85.7% and Fan-Out reaching 92.9%), slashing missed laundering rings by over 36%.
+3. **The Necessity of Attention Aggregation**: Feeding cycle metrics purely as passive edge attributes (Ablation 2) failed without attention because mean aggregation dilutes localized cycle signals. Cycle-Aware Attention (Ablation 3) dynamically weights neighbor aggregation, unlocking substantial structural gains.
+

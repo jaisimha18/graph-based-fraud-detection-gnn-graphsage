@@ -5,11 +5,11 @@ import os
 print("Loading full dataset...")
 full_df = pd.read_csv("AML_DATASET/HI-Small_Trans.csv")
 
-sample_files = glob.glob("sample_trans*.csv")
+sample_files = glob.glob("data/samples/sample_trans*.csv")
 
 for file in sample_files:
     # Skip if it's already a huge subgraph
-    if file == "sample_trans_5_subgraph.csv":
+    if file == "data/samples/sample_trans_5_subgraph.csv":
         continue
         
     print(f"\nEnriching {file}...")

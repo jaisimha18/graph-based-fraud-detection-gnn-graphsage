@@ -6,7 +6,7 @@ data_path = "AML_DATASET/HI-Small_Trans.csv"
 print("Loading dataset...")
 df = pd.read_csv(data_path)
 
-# Find a fraudulent transaction
+# Find a fraudulent transactioxn
 fraud_txns = df[df['Is Laundering'] == 1]
 if fraud_txns.empty:
     print("No fraud found!")
@@ -28,7 +28,7 @@ hop2_mask = df['Account'].isin(hop1_accounts) | df['Account.1'].isin(hop1_accoun
 hop2_txns = df[hop2_mask]
 
 # Save to CSV
-out_path = "sample_trans_5_subgraph.csv"
+out_path = "data/samples/sample_trans_5_subgraph.csv"
 hop2_txns.to_csv(out_path, index=False)
 print(f"Saved {len(hop2_txns)} transactions (2-hop subgraph) to {out_path}")
 print(f"Actual Fraud in this subgraph: {hop2_txns['Is Laundering'].sum()}")

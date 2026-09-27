@@ -13,7 +13,7 @@
 # Run: python -m src.aml_pipeline.export_neo4j_aml
 # ============================================================
 
-import os, sys
+import os,sys
 import numpy as np
 import pandas as pd
 
@@ -47,7 +47,7 @@ def export_account_nodes() -> pd.DataFrame:
     neo4j_df["inAvgAmount:float"]          = df["in_avg_amount"].round(4)
     neo4j_df["uniqueCounterparties:float"] = df["unique_counterparties"].round(4)
     neo4j_df[":LABEL"]                     = "Account"
-
+    
     path = os.path.join(NEO4J_DIR, "nodes_accounts.csv")
     neo4j_df.to_csv(path, index=False)
     print(f"  ✅ {len(neo4j_df):,} account nodes → {path}")
