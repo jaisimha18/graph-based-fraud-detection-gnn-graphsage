@@ -173,8 +173,8 @@ export default function TransactionAnalysis() {
                 
                 <div className="threshold-control" style={{ marginTop: '1rem', paddingTop: '1rem', borderTop: '1px solid rgba(255,255,255,0.1)' }}>
                   <div className="stat-row">
-                    <span className="stat-label" style={{ color: '#f8fafc', fontWeight: 500 }}>Adjust Threshold:</span>
-                    <span className="stat-value" style={{ color: '#3b82f6' }}>{customThreshold.toFixed(2)}</span>
+                    <span className="stat-label" style={{ color: '#f8fafc', fontWeight: 500 }}>Detection Threshold:</span>
+                    <span className="stat-value" style={{ color: '#3b82f6', fontWeight: 600 }}>{customThreshold.toFixed(2)}</span>
                   </div>
                   <input 
                     type="range" 
@@ -185,8 +185,34 @@ export default function TransactionAnalysis() {
                     onChange={(e) => setCustomThreshold(parseFloat(e.target.value))}
                     style={{ width: '100%', marginTop: '0.5rem', cursor: 'pointer' }}
                   />
-                  <p style={{ fontSize: '0.75rem', color: '#94a3b8', marginTop: '0.5rem', lineHeight: 1.3 }}>
-                    Lowering the threshold will flag more transactions. The original optimized threshold was {stats.threshold.toFixed(2)}.
+                  
+                  <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.6rem' }}>
+                    <button 
+                      type="button"
+                      onClick={() => setCustomThreshold(0.60)}
+                      style={{ 
+                        flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px',
+                        background: customThreshold <= 0.65 ? '#2563eb' : '#1e293b', color: '#f8fafc',
+                        border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer' 
+                      }}
+                    >
+                      Mini Sample (0.60)
+                    </button>
+                    <button 
+                      type="button"
+                      onClick={() => setCustomThreshold(stats.threshold || 0.95)}
+                      style={{ 
+                        flex: 1, padding: '0.35rem 0.5rem', fontSize: '0.72rem', borderRadius: '4px',
+                        background: customThreshold >= 0.90 ? '#2563eb' : '#1e293b', color: '#f8fafc',
+                        border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer' 
+                      }}
+                    >
+                      Full Graph ({(stats.threshold || 0.95).toFixed(2)})
+                    </button>
+                  </div>
+
+                  <p style={{ fontSize: '0.73rem', color: '#94a3b8', marginTop: '0.5rem', lineHeight: 1.35 }}>
+                    💡 <strong>Tip:</strong> Standalone mini CSVs lack the 4.9M full-graph neighbor connections, so fraud probabilities cluster around 0.60–0.65. Use <strong>0.60</strong> for mini samples and <strong>0.95</strong> for full-scale banking graphs.
                   </p>
                 </div>
               </div>
