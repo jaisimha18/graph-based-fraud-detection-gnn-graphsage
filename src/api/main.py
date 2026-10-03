@@ -14,8 +14,10 @@ from src.aml_pipeline.aml_config import (
     NUM_SAGE_LAYERS, DROPOUT, PREPROCESSED_DIR, ACCOUNT_FEAT_DIM, EDGE_FEAT_DIM
 )
 from src.models.graphsage_model import AMLGraphSAGEModel
+from src.models.cycle_graphsage_model import CycleAwareAMLModel
+from src.aml_pipeline.cycle_features import compute_cycle_features_for_edges
 
-app = FastAPI()
+app = FastAPI(title="GraphSAGE AML Fraud Detection API")
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,26 +29,42 @@ app.add_middleware(
 
 # Load model globally
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
-model_path = os.path.join(AML_OUTPUT_DIR, "model_results", "best_model.pt")
+out_dir = os.path.join(AML_OUTPUT_DIR, "model_results")
+cycle_model_path = os.path.join(out_dir, "best_model_cycle_attn.pt")
+baseline_model_path = os.path.join(out_dir, "best_model.pt")
+
+is_cycle_model = False
+model = None
 best_thresh = 0.5
 
-# Try to load evaluation report to get best_threshold
-try:
-    with open(os.path.join(AML_OUTPUT_DIR, "model_results", "evaluation_report.json"), "r") as f:
-        rep = json.load(f)
-        best_thresh = rep.get("best_threshold", 0.5)
-except:
-    pass
-
-model = None
-if os.path.exists(model_path):
+if os.path.exists(cycle_model_path):
+    print(f"[*] Loading Cycle-Aware AML Model from {cycle_model_path}")
+    model = CycleAwareAMLModel(
+        node_feat_dim=ACCOUNT_FEAT_DIM, edge_feat_dim=22,
+        hidden_dim=HIDDEN_DIM, out_dim=OUTPUT_DIM,
+        use_cycle_attention=True,
+        num_layers=NUM_SAGE_LAYERS, dropout=DROPOUT
+    ).to(device)
+    model.load_state_dict(torch.load(cycle_model_path, map_location=device))
+    model.eval()
+    is_cycle_model = True
+    rep_path = os.path.join(out_dir, "evaluation_report_cycle_attn.json")
+    if os.path.exists(rep_path):
+        with open(rep_path, "r") as f:
+            best_thresh = json.load(f).get("best_threshold", 0.95)
+elif os.path.exists(baseline_model_path):
+    print(f"[*] Loading Baseline GraphSAGE Model from {baseline_model_path}")
     model = AMLGraphSAGEModel(
         node_feat_dim=ACCOUNT_FEAT_DIM, edge_feat_dim=EDGE_FEAT_DIM,
         hidden_dim=HIDDEN_DIM, out_dim=OUTPUT_DIM, aggr=SAGE_AGGR,
         num_layers=NUM_SAGE_LAYERS, dropout=DROPOUT
     ).to(device)
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model.load_state_dict(torch.load(baseline_model_path, map_location=device))
     model.eval()
+    rep_path = os.path.join(out_dir, "evaluation_report.json")
+    if os.path.exists(rep_path):
+        with open(rep_path, "r") as f:
+            best_thresh = json.load(f).get("best_threshold", 0.95)
 
 # Helper for cyclic encoding
 def cyclical(series: pd.Series, period: int):
@@ -104,14 +122,14 @@ async def predict_transactions(file: UploadFile = File(...)):
     is_self_transfer = (df["Account"] == df["Account.1"]).astype(np.float32)
     is_cross_currency = (df["Receiving Currency"] != df["Payment Currency"]).astype(np.float32)
     
-    # Fallback to simple categorical mapping if LabelEncoders not saved
-    currencies = ["US Dollar", "Euro", "Bitcoin", "Ethereum", "Yen", "Pound", "Rupee", "Ruble", "Yuan"]
-    formats = ["Cheque", "Credit Card", "Cash", "Wire", "ACH", "Bitcoin"]
+    # Exact categorical mapping matching training preprocessing
+    currencies = ['Australian Dollar', 'Bitcoin', 'Brazil Real', 'Canadian Dollar', 'Euro', 'Mexican Peso', 'Ruble', 'Rupee', 'Saudi Riyal', 'Shekel', 'Swiss Franc', 'UK Pound', 'US Dollar', 'Yen', 'Yuan']
+    formats = ['ACH', 'Bitcoin', 'Cash', 'Cheque', 'Credit Card', 'Reinvestment', 'Wire']
     curr_dict = {c: i for i, c in enumerate(currencies)}
     fmt_dict = {f: i for i, f in enumerate(formats)}
     
-    rec_curr_enc = df["Receiving Currency"].fillna("US Dollar").map(lambda x: curr_dict.get(x, 0)).astype(np.float32)
-    fmt_enc = df["Payment Format"].fillna("Cheque").map(lambda x: fmt_dict.get(x, 0)).astype(np.float32)
+    rec_curr_enc = df["Receiving Currency"].fillna("US Dollar").map(lambda x: curr_dict.get(x, 12)).astype(np.float32)
+    fmt_enc = df["Payment Format"].fillna("Cheque").map(lambda x: fmt_dict.get(x, 3)).astype(np.float32)
     
     hour_sin, hour_cos = cyclical(df["hour"], 24)
     dow_sin, dow_cos = cyclical(df["dow"], 7)
@@ -127,21 +145,31 @@ async def predict_transactions(file: UploadFile = File(...)):
         is_night, is_weekend
     ])
     
+    if is_cycle_model:
+        if num_nodes > 1 and len(df) > 1:
+            cycle_feat_np = compute_cycle_features_for_edges(
+                num_nodes, edge_index_np[0], edge_index_np[1], edge_index_np[0], edge_index_np[1]
+            )
+        else:
+            cycle_feat_np = np.zeros((len(df), 8), dtype=np.float32)
+        edge_attr_np = np.hstack([edge_attr_np, cycle_feat_np])
+
     # Move to tensors
     x = torch.tensor(node_features, dtype=torch.float).to(device)
     edge_index = torch.tensor(edge_index_np, dtype=torch.long).to(device)
     edge_attr = torch.tensor(edge_attr_np, dtype=torch.float).to(device)
-    
-    # We do inference on all edges as labels
     edge_label_index = edge_index
-    
+
     with torch.no_grad():
-        logits = model(x, edge_index, edge_attr, edge_label_index)
+        if is_cycle_model:
+            logits = model(x, edge_index, edge_attr, edge_label_index, subgraph_edge_attr=edge_attr)
+        else:
+            logits = model(x, edge_index, edge_attr, edge_label_index)
         preds = torch.sigmoid(logits).cpu().numpy()
         
     # Prepare JSON response
     # Nodes: {id: account_id}
-    nodes_out = [{"id": acc} for acc in accounts]
+    nodes_out = [{"id": str(acc)} for acc in accounts]
     
     # Calculate actual fraud count if column exists
     actual_fraud = 0
@@ -151,8 +179,8 @@ async def predict_transactions(file: UploadFile = File(...)):
     # Links: {source: account, target: account, prediction: float, isFraud: bool}
     links_out = []
     for i, row in df.iterrows():
-        source = row["Account"]
-        target = row["Account.1"]
+        source = str(row["Account"])
+        target = str(row["Account.1"])
         pred_score = float(preds[i])
         is_fraud = bool(pred_score > best_thresh)
         amt = float(row["Amount Paid"])
@@ -162,15 +190,34 @@ async def predict_transactions(file: UploadFile = File(...)):
             "prediction": pred_score,
             "isFraud": is_fraud,
             "amount": amt,
-            "timestamp": row["Timestamp"],
-            "currency": row["Payment Currency"]
+            "timestamp": str(row["Timestamp"]),
+            "currency": str(row["Payment Currency"])
         })
         
     return {
         "nodes": nodes_out,
         "links": links_out,
+        "threshold": float(best_thresh),
+        "actualFraudCount": actual_fraud,
+        "modelUsed": "cycle_attn" if is_cycle_model else "baseline"
+    }
+
+@app.get("/api/ablation")
+def get_ablation_results():
+    results = {}
+    for m in ["baseline", "cycle_rw", "cycle_attn"]:
+        path = os.path.join(out_dir, f"evaluation_report_{m}.json" if m != "baseline" else "evaluation_report.json")
+        if os.path.exists(path):
+            with open(path, "r") as f:
+                results[m] = json.load(f)
+    return results
+
+@app.get("/api/model_info")
+def get_model_info():
+    return {
+        "active_model": "cycle_attn" if is_cycle_model else "baseline",
         "threshold": best_thresh,
-        "actualFraudCount": actual_fraud
+        "device": str(device)
     }
 
 if __name__ == "__main__":
