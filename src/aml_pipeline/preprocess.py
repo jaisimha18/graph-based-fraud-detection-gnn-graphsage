@@ -7,8 +7,18 @@
 #   1. Load & enrich HI-Small_accounts.csv   → account node features
 #   2. Process HI-Small_Trans.csv in chunks  → per-account aggregates
 #                                             → clean edge attributes
-#   3. Temporal split (Sept 1-12 / 13-15 / 16-18)
+#   3. Chronological split:
+#        Train : Sept  1 –  8   (days 1-8)
+#        Val   : Sept  9        (day 9)
+#        Test  : Sept 10 – 18   (days 10-18)
 #   4. Save preprocessed artefacts to outputs/aml/preprocessed/
+#
+# Data-leakage prevention:
+#   • Account aggregates are computed from TRAINING transactions only.
+#   • StandardScaler is fit on TRAINING accounts only, then applied
+#     to all accounts (train + val + test).
+#   • laundering_rate is NOT used as a node feature — it directly
+#     encodes the label and would leak target information.
 #
 # Graph structure:
 #   Nodes : accounts (single type — homogeneous graph)
@@ -29,7 +39,7 @@ from src.aml_pipeline.aml_config import (
     AML_DATA_DIR, AML_OUTPUT_DIR,
     TRANSACTIONS_CSV, ACCOUNTS_CSV,
     PREPROCESSED_DIR, CHUNK_SIZE,
-    TRAIN_RATIO, VAL_RATIO, TEST_RATIO,
+    TRAIN_END_DAY, VAL_DAY, TEST_START_DAY,
 )
 
 os.makedirs(PREPROCESSED_DIR, exist_ok=True)
@@ -48,6 +58,30 @@ def cyclical(series: pd.Series, period: int):
 def extract_entity_type(name: str) -> str:
     """Extract base entity type from names like 'Corporation #12345'."""
     return re.sub(r'\s*#\d+$', '', str(name)).strip()
+
+
+def _parse_day(timestamp_series: pd.Series) -> pd.Series:
+    """Extract day-of-month from Timestamp column (format: YYYY/MM/DD HH:MM)."""
+    return pd.to_datetime(timestamp_series, format="%Y/%m/%d %H:%M").dt.day
+
+
+def assign_split(day_series: pd.Series) -> pd.Series:
+    """
+    Assign chronological split based on day-of-month.
+      Train : day <= TRAIN_END_DAY   (Sept 1-8)
+      Val   : day == VAL_DAY         (Sept 9)
+      Test  : day >= TEST_START_DAY  (Sept 10-18)
+    """
+    conditions = [
+        day_series <= TRAIN_END_DAY,
+        day_series == VAL_DAY,
+        day_series >= TEST_START_DAY,
+    ]
+    choices = ["train", "val", "test"]
+    return pd.Series(
+        np.select(conditions, choices, default="test"),
+        index=day_series.index,
+    )
 
 
 # ─────────────────────────────────────────────────────────────
@@ -106,30 +140,31 @@ def preprocess_accounts() -> pd.DataFrame:
 
 
 # ─────────────────────────────────────────────────────────────
-# STEP 2 — ACCOUNT AGGREGATES FROM TRANSACTIONS (train only)
+# STEP 2 — ACCOUNT AGGREGATES FROM TRAINING TRANSACTIONS ONLY
 # ─────────────────────────────────────────────────────────────
 
 def compute_account_aggregates() -> pd.DataFrame:
     """
     Chunked pass over HI-Small_Trans.csv.
-    Computes per-account stats from ALL transactions.
-
-    NOTE: Since we use random stratified splitting (not temporal),
-    aggregates are computed from the full dataset before split
-    assignment. This is valid because node features are based on
-    the global graph structure, not on label-dependent information.
+    Computes per-account stats using ONLY TRAINING transactions
+    (Sept 1 – TRAIN_END_DAY) to prevent data leakage.
 
     Stats per account:
-      out_txn_count   : outgoing transactions
-      in_txn_count    : incoming transactions
-      out_avg_amount  : average outgoing amount
-      in_avg_amount   : average incoming amount
-      unique_counterparties : unique accounts transacted with
-      laundering_rate : fraction of transactions flagged as laundering
+      out_txn_count         : outgoing transactions (train only)
+      in_txn_count          : incoming transactions (train only)
+      out_avg_amount        : average outgoing amount (train only)
+      in_avg_amount         : average incoming amount (train only)
+      unique_counterparties : unique accounts transacted with (train only)
+
+    NOTE: laundering_rate is intentionally EXCLUDED — it directly
+    encodes the target label and would cause label leakage even if
+    restricted to training data (the model would learn to rely on a
+    pre-computed fraud signal rather than graph structure).
     """
     print("\n" + "=" * 60)
-    print("STEP 2: Computing Account Aggregates")
+    print("STEP 2: Computing Account Aggregates (TRAIN period only)")
     print("=" * 60)
+    print(f"  Training window: Sept 1 – Sept {TRAIN_END_DAY}")
 
     # Accumulators: account_id -> stats
     out_stats = {}   # outgoing stats
@@ -137,6 +172,7 @@ def compute_account_aggregates() -> pd.DataFrame:
     counterparties = {}  # account_id -> set of counterparty accounts
 
     total_rows = 0
+    train_rows = 0
 
     for chunk in tqdm(
         pd.read_csv(TRANSACTIONS_CSV, chunksize=CHUNK_SIZE, low_memory=False),
@@ -144,26 +180,31 @@ def compute_account_aggregates() -> pd.DataFrame:
     ):
         total_rows += len(chunk)
 
-        # Process all rows (no temporal filtering — random split later)
-        for _, row in chunk.iterrows():
+        # Parse day and filter to training period only
+        day = _parse_day(chunk["Timestamp"])
+        train_mask = day <= TRAIN_END_DAY
+        train_chunk = chunk[train_mask]
+        train_rows += len(train_chunk)
+
+        if train_chunk.empty:
+            continue
+
+        for _, row in train_chunk.iterrows():
             from_acc = row["Account"]
             to_acc = row["Account.1"]
             amt = float(row["Amount Paid"])
-            is_launder = int(row["Is Laundering"])
 
             # Outgoing stats
             if from_acc not in out_stats:
-                out_stats[from_acc] = {"n": 0, "sum_a": 0.0, "launder": 0}
+                out_stats[from_acc] = {"n": 0, "sum_a": 0.0}
             out_stats[from_acc]["n"] += 1
             out_stats[from_acc]["sum_a"] += amt
-            out_stats[from_acc]["launder"] += is_launder
 
             # Incoming stats
             if to_acc not in in_stats:
-                in_stats[to_acc] = {"n": 0, "sum_a": 0.0, "launder": 0}
+                in_stats[to_acc] = {"n": 0, "sum_a": 0.0}
             in_stats[to_acc]["n"] += 1
             in_stats[to_acc]["sum_a"] += float(row["Amount Received"])
-            in_stats[to_acc]["launder"] += is_launder
 
             # Counterparties
             if from_acc not in counterparties:
@@ -174,17 +215,16 @@ def compute_account_aggregates() -> pd.DataFrame:
             counterparties[to_acc].add(from_acc)
 
     print(f"  Total rows scanned : {total_rows:,}")
+    print(f"  Training rows used : {train_rows:,}")
 
-    # Build aggregate dataframe — union of all accounts seen
+    # Build aggregate dataframe — union of all accounts seen in training
     all_accounts = set(out_stats.keys()) | set(in_stats.keys())
-    print(f"  Unique accounts in transactions: {len(all_accounts):,}")
+    print(f"  Unique accounts in training transactions: {len(all_accounts):,}")
 
     rows = []
     for acc in all_accounts:
-        o = out_stats.get(acc, {"n": 0, "sum_a": 0.0, "launder": 0})
-        i = in_stats.get(acc, {"n": 0, "sum_a": 0.0, "launder": 0})
-        total_txn = o["n"] + i["n"]
-        total_launder = o["launder"] + i["launder"]
+        o = out_stats.get(acc, {"n": 0, "sum_a": 0.0})
+        i = in_stats.get(acc, {"n": 0, "sum_a": 0.0})
         rows.append({
             "account_id": acc,
             "out_txn_count": o["n"],
@@ -192,7 +232,6 @@ def compute_account_aggregates() -> pd.DataFrame:
             "out_avg_amount": o["sum_a"] / o["n"] if o["n"] > 0 else 0.0,
             "in_avg_amount": i["sum_a"] / i["n"] if i["n"] > 0 else 0.0,
             "unique_counterparties": len(counterparties.get(acc, set())),
-            "laundering_rate": total_launder / total_txn if total_txn > 0 else 0.0,
         })
 
     agg_df = pd.DataFrame(rows)
@@ -214,6 +253,11 @@ def build_account_features(
     Normalize all numeric features.
     Save to account_features.csv.
 
+    IMPORTANT: StandardScaler is fit on TRAINING-period accounts
+    only (those that appear in agg_df) and then applied to all
+    accounts — this prevents val/test information from influencing
+    the scaling parameters.
+
     Final feature vector per account (8 dims):
       bank_id, entity_type_enc, is_crypto_bank,
       out_txn_count, in_txn_count,
@@ -227,18 +271,18 @@ def build_account_features(
     # Merge on account_id
     merged = static_df.merge(agg_df, on="account_id", how="left")
 
-    # Fill accounts with no transactions (they exist in accounts.csv but not in train)
+    # Fill accounts with no training transactions
     fill_cols = [
         "out_txn_count", "in_txn_count",
         "out_avg_amount", "in_avg_amount",
-        "unique_counterparties", "laundering_rate",
+        "unique_counterparties",
     ]
     for col in fill_cols:
         merged[col] = merged[col].fillna(0)
 
     print(f"  Merged accounts: {len(merged):,}")
-    print(f"  Accounts with transactions: {(merged['out_txn_count'] > 0).sum():,}")
-    print(f"  Accounts without transactions: {(merged['out_txn_count'] == 0).sum():,}")
+    print(f"  Accounts with train transactions: {(merged['out_txn_count'] > 0).sum():,}")
+    print(f"  Accounts without train transactions: {(merged['out_txn_count'] == 0).sum():,}")
 
     # ── Feature columns (8 dims) ─────────────────────────────
     feat_cols = [
@@ -248,9 +292,15 @@ def build_account_features(
         "unique_counterparties",
     ]
 
-    # Normalize
+    # Fit scaler on training-period accounts only (those with aggregates),
+    # then transform ALL accounts to prevent data leakage.
+    train_account_ids = set(agg_df["account_id"].values)
+    train_mask = merged["account_id"].isin(train_account_ids)
+
     scaler = StandardScaler()
-    feat_matrix = scaler.fit_transform(merged[feat_cols].astype(float).values)
+    scaler.fit(merged.loc[train_mask, feat_cols].astype(float).values)
+    feat_matrix = scaler.transform(merged[feat_cols].astype(float).values)
+
     feat_df = pd.DataFrame(feat_matrix, columns=feat_cols)
     feat_df["account_id"] = merged["account_id"].values
 
@@ -258,27 +308,23 @@ def build_account_features(
     feat_df.to_csv(os.path.join(PREPROCESSED_DIR, "account_features.csv"), index=False)
 
     print(f"  ✅ Account feature matrix: {feat_matrix.shape}  (dim={len(feat_cols)})")
+    print(f"     Scaler fit on {train_mask.sum():,} training accounts")
     print(f"     Saved → {os.path.join(PREPROCESSED_DIR, 'account_features.csv')}")
 
     return feat_df
 
 
 # ─────────────────────────────────────────────────────────────
-# STEP 4 — TRANSACTION EDGES (clean, encode, stratified split)
+# STEP 4 — TRANSACTION EDGES (clean, encode, chronological split)
 # ─────────────────────────────────────────────────────────────
 
 def preprocess_transactions():
     """
     Process HI-Small_Trans.csv in chunks.
-    Encode edge features and split using random stratified sampling.
-
-    NOTE: Temporal split doesn't work for this dataset because
-    99.9% of transactions fall on days 1-10. Days 11-18 contain
-    almost exclusively laundering edges, producing unusable
-    val/test sets with ~60% laundering rate.
-
-    Instead, we use random stratified split (80/10/10) that
-    preserves the ~0.10% laundering rate across all splits.
+    Encode edge features and split chronologically:
+      Train : Sept  1 –  8  (day <= TRAIN_END_DAY)
+      Val   : Sept  9       (day == VAL_DAY)
+      Test  : Sept 10 – 18  (day >= TEST_START_DAY)
 
     Edge features (14 dims):
       amount_received_log, amount_paid_log, amount_diff_log,
@@ -293,7 +339,10 @@ def preprocess_transactions():
     print("\n" + "=" * 60)
     print("STEP 4: Preprocessing Transaction Edges")
     print("=" * 60)
-    print(f"  Split strategy: Random Stratified ({TRAIN_RATIO:.0%}/{VAL_RATIO:.0%}/{TEST_RATIO:.0%})")
+    print(f"  Split strategy: Chronological")
+    print(f"    Train : Sept 1 – {TRAIN_END_DAY}")
+    print(f"    Val   : Sept {VAL_DAY}")
+    print(f"    Test  : Sept {TEST_START_DAY} – 18")
 
     # ── Fit label encoders on full dataset first ─────────────
     print("  Fitting encoders...")
@@ -312,8 +361,13 @@ def preprocess_transactions():
     print(f"  Currencies ({len(le_currency.classes_)}): {list(le_currency.classes_)}")
     print(f"  Payment formats ({len(le_format.classes_)}): {list(le_format.classes_)}")
 
-    # ── Pass 1: Encode all edges into one buffer ──────────────
-    all_edges = []
+    # ── Process edges in chunks, route to split buffers ───────
+    split_buffers = {"train": [], "val": [], "test": []}
+    counters = {
+        "train": {"total": 0, "launder": 0},
+        "val":   {"total": 0, "launder": 0},
+        "test":  {"total": 0, "launder": 0},
+    }
 
     chunk_id = 0
     for chunk in tqdm(
@@ -325,8 +379,12 @@ def preprocess_transactions():
 
         # ── Parse timestamp ───────────────────────────────────
         dt = pd.to_datetime(df["Timestamp"], format="%Y/%m/%d %H:%M")
+        df["day"] = dt.dt.day
         df["hour"] = dt.dt.hour
         df["dow"] = dt.dt.dayofweek
+
+        # ── Assign chronological split ────────────────────────
+        df["split"] = assign_split(df["day"])
 
         # ── Account IDs ───────────────────────────────────────
         df["from_account"] = df["Account"]
@@ -385,56 +443,45 @@ def preprocess_transactions():
             "is_night", "is_weekend",
             "laundering_label",
         ]
-        all_edges.append(df[edge_cols])
 
-    # ── Combine all edges ─────────────────────────────────────
-    print("\n  Combining all edges...")
-    full_df = pd.concat(all_edges, ignore_index=True)
-    print(f"  Total edges: {len(full_df):,}")
-    print(f"  Laundering : {full_df['laundering_label'].sum():,} ({full_df['laundering_label'].mean()*100:.4f}%)")
+        # ── Route to split buffers ────────────────────────────
+        for sp in ["train", "val", "test"]:
+            sub = df.loc[df["split"] == sp, edge_cols]
+            if not sub.empty:
+                split_buffers[sp].append(sub)
+                counters[sp]["total"] += len(sub)
+                counters[sp]["launder"] += sub["laundering_label"].sum()
 
-    # ── Random stratified split ───────────────────────────────
-    print(f"\n  Performing stratified split ({TRAIN_RATIO:.0%}/{VAL_RATIO:.0%}/{TEST_RATIO:.0%})...")
-
-    from sklearn.model_selection import train_test_split
-
-    # First split: train vs (val + test)
-    val_test_ratio = VAL_RATIO + TEST_RATIO
-    train_df, val_test_df = train_test_split(
-        full_df,
-        test_size=val_test_ratio,
-        random_state=42,
-        stratify=full_df["laundering_label"],
-    )
-
-    # Second split: val vs test
-    test_relative = TEST_RATIO / val_test_ratio
-    val_df, test_df = train_test_split(
-        val_test_df,
-        test_size=test_relative,
-        random_state=42,
-        stratify=val_test_df["laundering_label"],
-    )
-
-    # ── Save ──────────────────────────────────────────────────
-    for sp, sp_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
+    # ── Concatenate and save each split ───────────────────────
+    for sp in ["train", "val", "test"]:
+        if split_buffers[sp]:
+            sp_df = pd.concat(split_buffers[sp], ignore_index=True)
+        else:
+            sp_df = pd.DataFrame(columns=edge_cols)
         path = os.path.join(PREPROCESSED_DIR, f"edges_{sp}.csv")
         sp_df.to_csv(path, index=False)
 
     # ── Summary ───────────────────────────────────────────────
-    print("\n  Edge split summary:")
-    print(f"  {'Split':<8} {'Edges':>12} {'Laundering':>12} {'Rate':>10}")
-    print(f"  {'-'*46}")
-    for sp, sp_df in [("train", train_df), ("val", val_df), ("test", test_df)]:
-        n_l = sp_df["laundering_label"].sum()
-        n_t = len(sp_df)
-        rate = n_l / n_t * 100
-        print(f"  {sp:<8} {n_t:>12,} {n_l:>12,} {rate:>9.4f}%")
+    total_edges = sum(c["total"] for c in counters.values())
+    print(f"\n  Total edges: {total_edges:,}")
+    print(f"\n  Chronological edge split summary:")
+    print(f"  {'Split':<8} {'Days':<12} {'Edges':>12} {'Laundering':>12} {'Rate':>10}")
+    print(f"  {'-'*58}")
+    day_ranges = {
+        "train": f"Sept 1-{TRAIN_END_DAY}",
+        "val":   f"Sept {VAL_DAY}",
+        "test":  f"Sept {TEST_START_DAY}-18",
+    }
+    for sp in ["train", "val", "test"]:
+        n_l = counters[sp]["launder"]
+        n_t = counters[sp]["total"]
+        rate = n_l / n_t * 100 if n_t > 0 else 0.0
+        print(f"  {sp:<8} {day_ranges[sp]:<12} {n_t:>12,} {n_l:>12,} {rate:>9.4f}%")
 
     print(f"\n  ✅ Saved → {PREPROCESSED_DIR}/edges_[train|val|test].csv")
 
     # Free memory
-    del full_df, train_df, val_df, test_df, val_test_df
+    del split_buffers
 
 
 # ─────────────────────────────────────────────────────────────
@@ -447,20 +494,21 @@ def run_all():
     print("  Homogeneous Account–Account Graph")
     print("=" * 60)
     print(f"  Dataset: IBM HI-Small AML")
-    print(f"  Splits:  Stratified Random ({TRAIN_RATIO:.0%}/{VAL_RATIO:.0%}/{TEST_RATIO:.0%})")
+    print(f"  Split:   Chronological (Train: Sept 1-{TRAIN_END_DAY} | "
+          f"Val: Sept {VAL_DAY} | Test: Sept {TEST_START_DAY}-18)")
     print(f"  Output → {PREPROCESSED_DIR}")
 
     # Step 1: Static account features
     static_df = preprocess_accounts()
 
-    # Step 2: Transaction-derived aggregates (train only — uses full data
-    #          since aggregates are computed before split assignment)
+    # Step 2: Transaction-derived aggregates (TRAINING period only)
     agg_df = compute_account_aggregates()
 
     # Step 3: Merge & normalize account features
+    #   (scaler fit on training accounts only → no leakage)
     _ = build_account_features(static_df, agg_df)
 
-    # Step 4: Transaction edge preprocessing + stratified split
+    # Step 4: Transaction edge preprocessing + chronological split
     preprocess_transactions()
 
     print("\n" + "=" * 60)
@@ -471,4 +519,3 @@ def run_all():
 
 if __name__ == "__main__":
     run_all()
-

@@ -1,0 +1,37 @@
+flowchart TD
+    subgraph DataIngestion ["Data Ingestion & Preprocessing"]
+        A["Raw IBM HI-Small Dataset"] --> B["Data Cleaning & Deduplication"]
+        B --> C["Feature Engineering\nNode & Edge Features"]
+        C --> D["Chronological Splitting\nTrain/Val/Test (Zero Leakage)"]
+        D --> E["Feature Normalization & Encoding"]
+    end
+
+    subgraph GraphConstruction ["Graph Construction & Cycle Augmentation"]
+        E --> F["PyTorch Geometric Data Object"]
+        F --> G["Node Features - x (14-dim)"]
+        F --> H["Edge Index - edge_index"]
+        F --> I["Edge Attributes - edge_attr"]
+        F --> Z["N-Step Random Walk Cycle Extractor\n(k=2..5 Return Probabilities)"]
+        Z --> Y["Augmented Edge Matrix\n(14 Base + 8 Cycle = 22-dim)"]
+    end
+
+    subgraph ModelArchitecture ["Cycle-Aware Architecture & Training"]
+        Y --> K["LinkNeighborLoader\nDynamic Negative Sampling"]
+        H --> K
+        G --> K
+        K --> L["Cycle-Aware GraphSAGE Conv\nEdge Cycle Attention Aggregation"]
+        L --> M["Edge Classifier Head\nTarget Edge MLP"]
+        M --> N["BCEWithLogitsLoss\nWeighted for Imbalance"]
+    end
+
+    subgraph Evaluation ["Rigorous Multi-Level Evaluation"]
+        N --> O["Chronological Test Window Inference\n(Days 10-18 Zero Leakage)"]
+        O --> P["Standard Metrics\nROC-AUC, PR-AUC, F1"]
+        O --> Q["4-Level Laundering Ring Metrics\nAlert, Majority (≥50%), Full (100%), Mean Coverage"]
+    end
+
+    style DataIngestion fill:#f9f2f4,stroke:#A4123F
+    style GraphConstruction fill:#f4f9f2,stroke:#2a9d8f
+    style ModelArchitecture fill:#f2f4f9,stroke:#118ab2
+    style Evaluation fill:#fff8e7,stroke:#e9c46a
+

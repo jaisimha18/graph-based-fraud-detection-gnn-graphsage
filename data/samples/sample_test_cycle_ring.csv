@@ -1,0 +1,5 @@
+Timestamp,From Bank,Account,To Bank,Account.1,Amount Received,Amount Paid,Receiving Currency,Payment Currency,Payment Format,Is Laundering
+2022/09/10 03:16,10,8002E86B0,20,8010D33A0,10388.14,10388.14,US Dollar,US Dollar,Cheque,1
+2022/09/12 05:44,20,8010D33A0,30,806194950,808238.64,808238.64,US Dollar,US Dollar,Cheque,1
+2022/09/12 11:53,30,806194950,40,80E93E900,67570.74,67570.74,US Dollar,US Dollar,Cheque,1
+2022/09/12 20:01,40,80E93E900,10,8002E86B0,7835.52,7835.52,US Dollar,US Dollar,Cheque,1
