@@ -3,7 +3,7 @@ Unit tests for FastAPI endpoints (src/api/main.py).
 """
 import io
 import pytest
-from starlette.testclient import TestClient
+from fastapi.testclient import TestClient
 from src.api.main import app
 
 @pytest.fixture
@@ -48,9 +48,9 @@ def test_predict_endpoint_valid_mini_data(client):
     response = client.post("/api/predict", files=file_payload)
     assert response.status_code == 200
     data = response.json()
-    if "error" not in data:
-        assert "nodes" in data
-        assert "links" in data
-        assert "threshold" in data
-        assert len(data["nodes"]) == 3
-        assert len(data["links"]) == 3
+    assert "error" not in data
+    assert "nodes" in data
+    assert "links" in data
+    assert "threshold" in data
+    assert len(data["nodes"]) == 3
+    assert len(data["links"]) == 3

@@ -24,16 +24,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install torch --index-url https://download.pytorch.org/whl/cpu
+          pip install -r requirements.txt
           pip install flake8 pytest pytest-cov
-          pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
       - name: Python Syntax and Code Quality (Flake8)
         run: |
           # Stop build if there are Python syntax errors or undefined names
-          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,__pycache__,AML_DATASET,outputs
+          flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude=.venv,__pycache__,AML_DATASET,outputs,website
           # Exit-zero treats all errors as warnings
-          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,__pycache__,AML_DATASET,outputs
+          flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude=.venv,__pycache__,AML_DATASET,outputs,website
 
       - name: Run Pytest Test Suite
+        env:
+          PYTHONPATH: .
         run: |
-          pytest tests/ -v --cov=src --cov-report=xml --cov-report=term
+          python -m pytest tests/ -v
