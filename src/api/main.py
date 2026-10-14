@@ -65,18 +65,6 @@ elif os.path.exists(baseline_model_path):
     if os.path.exists(rep_path):
         with open(rep_path, "r") as f:
             best_thresh = json.load(f).get("best_threshold", 0.95)
-else:
-    # Initialize default Cycle-Aware AML Model for test / demo environments
-    print("[*] No saved weights found; initializing default Cycle-Aware Model")
-    model = CycleAwareAMLModel(
-        node_feat_dim=ACCOUNT_FEAT_DIM, edge_feat_dim=22,
-        hidden_dim=HIDDEN_DIM, out_dim=OUTPUT_DIM,
-        use_cycle_attention=True,
-        num_layers=NUM_SAGE_LAYERS, dropout=DROPOUT
-    ).to(device)
-    model.eval()
-    is_cycle_model = True
-    best_thresh = 0.5
 
 # Helper for cyclic encoding
 def cyclical(series: pd.Series, period: int):
@@ -85,11 +73,11 @@ def cyclical(series: pd.Series, period: int):
 
 @app.post("/api/predict")
 async def predict_transactions(file: UploadFile = File(...)):
-    if not model:
-        return {"error": "Model not loaded. Please train the model first."}
-    
     contents = await file.read()
-    df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+    try:
+        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+    except Exception as e:
+        return {"error": f"Failed to parse CSV file: {str(e)}"}
     
     # Check if necessary columns exist
     required = ["Timestamp", "From Bank", "Account", "To Bank", "Account.1", 
@@ -97,6 +85,9 @@ async def predict_transactions(file: UploadFile = File(...)):
     
     if not all(col in df.columns for col in required):
         return {"error": "Missing required columns in CSV."}
+        
+    if not model:
+        return {"error": "Model not loaded. Please train the model first."}
         
     # Build unique nodes
     accounts = pd.concat([df["Account"], df["Account.1"]]).unique()
