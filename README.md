@@ -302,6 +302,7 @@ The FastAPI backend exposes the following endpoints:
 | [DATA_DICTIONARY.md](docs/DATA_DICTIONARY.md) | Dataset schema, features, and preprocessing details |
 | [METHODOLOGY_REPORT.md](docs/METHODOLOGY_REPORT.md) | Research methodology and experimental design |
 | [PROGRESS_REPORT.md](docs/PROGRESS_REPORT.md) | Development timeline and engineering changelog |
+| [CYCLE_AWARENESS_EXPLAINED.md](docs/CYCLE_AWARENESS_EXPLAINED.md) | Deep-dive conceptual & mathematical guide to Phase 3A & 3B |
 
 ---
 

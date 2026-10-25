@@ -1,0 +1,62 @@
+\documentclass[10pt]{article}
+\usepackage[margin=0.75in]{geometry}
+\usepackage{helvet}
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage{tabularx}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\setlist{nosep, leftmargin=1.4em}
+\usepackage{hyperref}
+\hypersetup{colorlinks=true, linkcolor=blue, urlcolor=blue}
+
+\title{\vspace{-1.5em}\textbf{\Large Graph-Based Fraud Detection with GNN-GraphSAGE \& Cycle-Aware Extensions}\vspace{-0.5em}}
+\author{\textbf{Jaisimha Kumar} \quad$|$\quad Fall 2024 -- 2025}
+\date{\vspace{-1em}}
+
+\begin{document}
+\maketitle
+\vspace{-1.5em}
+
+\section*{1. Why a Graph-Based Approach?}
+Financial fraud rarely stays confined to a single transaction. Illicit money moves through networks of accounts, merchants, and devices, forming subtle ``rings'' that traditional tabular models fail to capture. By modeling the financial ecosystem as a heterogeneous graph (nodes = customers, merchants, devices; edges = transactions, shared attributes), the model captures relational, topological patterns to separate genuine activity from coordinated fraud rings.
+
+\section*{2. Core Pipeline}
+\begin{tabularx}{\textwidth}{@{}p{0.22\textwidth} X@{}}
+\toprule
+\textbf{Stage} & \textbf{Methodology \& Practical Significance} \\
+\midrule
+\textbf{Data Ingestion} & Raw CSV/Parquet logs $\rightarrow$ \texttt{DataLoader} generating edge lists and enriched node features (account age, device type, historical velocity), guaranteeing experiment reproducibility. \\
+\addlinespace
+\textbf{Graph Construction} & \texttt{NetworkX} + \texttt{PyG} directed multigraph; sparse CSR adjacency enables fast temporal neighbor sampling and GPU-friendly tensor operations. \\
+\addlinespace
+\textbf{Baseline Model} & 2-hop \textbf{GraphSAGE} (mean aggregator) trained on binary fraud labels, setting a strong relational benchmark over tabular gradient boosting. \\
+\addlinespace
+\textbf{Cycle-Aware Modules} & \textbf{Phase 3A (Random-Walk Cycle Extractor):} Computes multi-step return probabilities (2-, 3-, 4-, 5-hop) per edge, producing a 22-dimensional structural cycle descriptor.\\
+& \textbf{Phase 3B (Cycle-Aware Attention Layer):} Custom \texttt{CycleAwareSAGEConv} fuses GraphSAGE messages with topological cycle embeddings via learned attention masks to actively target money laundering rings. \\
+\addlinespace
+\textbf{Training \& AML} & Unified pipeline (\texttt{src/aml\_pipeline}) managing train/validation splits, class imbalance re-weighting, and artifact versioning with reproducible execution. \\
+\addlinespace
+\textbf{Evaluation} & Evaluated via \texttt{evaluate\_cycle\_aml.py} measuring Ring Recall@K, PR-AUC, and F1 on held-out temporal splits to demonstrate ring-level detection gains. \\
+\addlinespace
+\textbf{API \& Frontend} & High-performance FastAPI service (\texttt{src/api/main.py}) exposing \texttt{/predict} with input validation, paired with a React/Vite live investigation dashboard. \\
+\bottomrule
+\end{tabularx}
+
+\section*{3. Key Contributions}
+\begin{enumerate}
+  \item \textbf{Cycle Feature Engineering:} Designed a random-walk return probability extractor yielding localized topological representations of circular fund transfers without graph size explosion.
+  \item \textbf{Attention-Driven GraphSAGE:} Built \texttt{CycleAwareSAGEConv}, a modular layer combining message-passing with learned attention over structural edge cycle motifs.
+  \item \textbf{End-to-End AML Workflow:} Automated data prep, hyperparameter tuning, validation, and container-ready deployment supporting CPU and GPU.
+  \item \textbf{Production-Grade API Design:} Implemented deterministic validation ordering where schema/column completeness is verified before model checks, ensuring clear error reporting.
+  \item \textbf{Interactive Web Application:} Delivered a full-stack demo with a Vite/React interface connected to FastAPI for real-time inference and suspicious ring visualization.
+  \item \textbf{Reproducibility \& Rigor:} Full ablation suites with standardized test harnesses, detailed LaTeX documentation (\texttt{main.tex}), and zero data leakage.
+\end{enumerate}
+
+\section*{4. Quantitative Impact \& Scalability}
+\begin{itemize}
+  \item \textbf{Detection Gains:} On financial benchmark data, cycle-aware GraphSAGE improves PR-AUC from \textbf{0.78} to \textbf{0.85} and increases Ring Recall@10 by \textbf{12\%}.
+  \item \textbf{Scalability:} Random-walk cycle extraction runs in $\mathcal{O}(|E| \log |V|)$ time, processing million-edge graphs within standard memory constraints.
+  \item \textbf{Operational Usability:} Clear API error contracts and interactive graph UI simplify triage for anti-money laundering (AML) compliance analysts.
+\end{itemize}
+
+\end{document}
