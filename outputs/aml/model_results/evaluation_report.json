@@ -1,0 +1,155 @@
+{
+  "roc_auc": 0.9853354985533851,
+  "pr_auc": 0.3227481289296656,
+  "best_threshold": 0.95,
+  "f1_score": 0.21187375855219598,
+  "confusion_matrix": [
+    [
+      201331,
+      7005
+    ],
+    [
+      137,
+      960
+    ]
+  ],
+  "classification_report": {
+    "Legit": {
+      "precision": 0.9993199912641213,
+      "recall": 0.9663764303816911,
+      "f1-score": 0.9825721564455203,
+      "support": 208336.0
+    },
+    "Laundering": {
+      "precision": 0.12052730696798493,
+      "recall": 0.8751139471285324,
+      "f1-score": 0.21187375855219598,
+      "support": 1097.0
+    },
+    "accuracy": 0.9658984018755401,
+    "macro avg": {
+      "precision": 0.5599236491160531,
+      "recall": 0.9207451887551117,
+      "f1-score": 0.5972229574988581,
+      "support": 209433.0
+    },
+    "weighted avg": {
+      "precision": 0.9947169173709295,
+      "recall": 0.9658984018755401,
+      "f1-score": 0.9785352752353529,
+      "support": 209433.0
+    }
+  },
+  "pattern_recall": {
+    "overall": {
+      "total_in_test": 229,
+      "detected": 227,
+      "recall": 99.13,
+      "detected_any": 227,
+      "recall_any": 99.13,
+      "detected_majority": 225,
+      "recall_majority": 98.25,
+      "detected_full": 181,
+      "recall_full": 79.04,
+      "mean_coverage": 94.4
+    },
+    "by_type": {
+      "FAN-OUT": {
+        "total": 28,
+        "detected": 27,
+        "recall": 96.43,
+        "detected_any": 27,
+        "recall_any": 96.43,
+        "detected_majority": 26,
+        "recall_majority": 92.86,
+        "detected_full": 22,
+        "recall_full": 78.57,
+        "mean_coverage": 92.29
+      },
+      "CYCLE": {
+        "total": 28,
+        "detected": 28,
+        "recall": 100.0,
+        "detected_any": 28,
+        "recall_any": 100.0,
+        "detected_majority": 28,
+        "recall_majority": 100.0,
+        "detected_full": 27,
+        "recall_full": 96.43,
+        "mean_coverage": 99.11
+      },
+      "GATHER-SCATTER": {
+        "total": 43,
+        "detected": 43,
+        "recall": 100.0,
+        "detected_any": 43,
+        "recall_any": 100.0,
+        "detected_majority": 43,
+        "recall_majority": 100.0,
+        "detected_full": 23,
+        "recall_full": 53.49,
+        "mean_coverage": 91.12
+      },
+      "STACK": {
+        "total": 28,
+        "detected": 27,
+        "recall": 96.43,
+        "detected_any": 27,
+        "recall_any": 96.43,
+        "detected_majority": 27,
+        "recall_majority": 96.43,
+        "detected_full": 22,
+        "recall_full": 78.57,
+        "mean_coverage": 90.94
+      },
+      "RANDOM": {
+        "total": 24,
+        "detected": 24,
+        "recall": 100.0,
+        "detected_any": 24,
+        "recall_any": 100.0,
+        "detected_majority": 24,
+        "recall_majority": 100.0,
+        "detected_full": 18,
+        "recall_full": 75.0,
+        "mean_coverage": 90.83
+      },
+      "BIPARTITE": {
+        "total": 23,
+        "detected": 23,
+        "recall": 100.0,
+        "detected_any": 23,
+        "recall_any": 100.0,
+        "detected_majority": 23,
+        "recall_majority": 100.0,
+        "detected_full": 20,
+        "recall_full": 86.96,
+        "mean_coverage": 97.68
+      },
+      "FAN-IN": {
+        "total": 26,
+        "detected": 26,
+        "recall": 100.0,
+        "detected_any": 26,
+        "recall_any": 100.0,
+        "detected_majority": 26,
+        "recall_majority": 100.0,
+        "detected_full": 25,
+        "recall_full": 96.15,
+        "mean_coverage": 98.85
+      },
+      "SCATTER-GATHER": {
+        "total": 29,
+        "detected": 29,
+        "recall": 100.0,
+        "detected_any": 29,
+        "recall_any": 100.0,
+        "detected_majority": 28,
+        "recall_majority": 96.55,
+        "detected_full": 24,
+        "recall_full": 82.76,
+        "mean_coverage": 96.47
+      }
+    }
+  }
+}
