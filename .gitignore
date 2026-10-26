@@ -5,7 +5,14 @@
 # Large datasets (not tracked — see docs/SETUP.md for download instructions)
 data/transactions.csv
 AML_DATASET/
-outputs/
+outputs/*
+!outputs/aml/
+outputs/aml/*
+!outputs/aml/model_results/
+outputs/aml/model_results/*
+!outputs/aml/model_results/*.pt
+!outputs/aml/model_results/*.json
+!outputs/aml/model_results/*.png
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

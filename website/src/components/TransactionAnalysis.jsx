@@ -51,8 +51,8 @@ export default function TransactionAnalysis() {
     formData.append('file', file);
 
     try {
-      // Assuming FastAPI is running on localhost:8000
-      const response = await fetch('http://localhost:8000/api/predict', {
+      const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const response = await fetch(`${API_BASE}/api/predict`, {
         method: 'POST',
         body: formData,
       });

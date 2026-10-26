@@ -8,12 +8,17 @@
 import os
 import sys
 import json
-import torch
 import argparse
-import numpy as np
-from sklearn.metrics import roc_auc_score, f1_score, precision_recall_curve, auc, confusion_matrix, classification_report
-from torch_geometric.loader import LinkNeighborLoader
-from tqdm import tqdm
+
+try:
+    import torch
+    import numpy as np
+    from sklearn.metrics import roc_auc_score, f1_score, precision_recall_curve, auc, confusion_matrix, classification_report
+    from torch_geometric.loader import LinkNeighborLoader
+    from tqdm import tqdm
+    HAS_TORCH = True
+except ImportError:
+    HAS_TORCH = False
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 from src.aml_pipeline.aml_config import (
@@ -21,26 +26,26 @@ from src.aml_pipeline.aml_config import (
     HIDDEN_DIM, OUTPUT_DIM, NUM_SAGE_LAYERS, DROPOUT, THRESHOLD_SWEEP,
     PATTERNS_TXT, PREPROCESSED_DIR
 )
-from src.models.graphsage_model import AMLGraphSAGEModel
-from src.models.cycle_graphsage_model import CycleAwareAMLModel
-from src.training.evaluate_aml import parse_patterns, compute_pattern_recall
 
 def get_device():
+    if not HAS_TORCH:
+        raise ImportError("PyTorch is required for model evaluation. Please install torch.")
     if torch.backends.mps.is_available():
         return torch.device("mps")
     elif torch.cuda.is_available():
         return torch.device("cuda")
     return torch.device("cpu")
-
-@torch.no_grad()
 def get_predictions(model, loader, target_edge_attr, device, is_cycle_model=False):
+    if not HAS_TORCH:
+        raise ImportError("PyTorch is required for model evaluation. Please install torch.")
     model.eval()
     all_preds = []
     all_labels = []
 
-    for batch in tqdm(loader, desc="Inference", leave=False):
-        batch = batch.to(device)
-        batch_edge_attr = target_edge_attr[batch.input_id.cpu()].to(device)
+    with torch.no_grad():
+        for batch in tqdm(loader, desc="Inference", leave=False):
+            batch = batch.to(device)
+            batch_edge_attr = target_edge_attr[batch.input_id.cpu()].to(device)
 
         if is_cycle_model:
             subgraph_edge_attr = batch.edge_attr.to(device) if hasattr(batch, 'edge_attr') and batch.edge_attr is not None else None
@@ -60,6 +65,12 @@ def evaluate_model(model_name: str = "cycle_attn"):
     """
     Evaluates a specific model variant: 'baseline', 'cycle_rw', or 'cycle_attn'.
     """
+    if not HAS_TORCH:
+        raise ImportError("PyTorch and PyG are required to run model evaluation. Install torch to run inference.")
+    from src.models.graphsage_model import AMLGraphSAGEModel
+    from src.models.cycle_graphsage_model import CycleAwareAMLModel
+    from src.training.evaluate_aml import parse_patterns, compute_pattern_recall
+
     print("\n" + "=" * 65)
     print(f"  EVALUATION: {model_name.upper()} MODEL")
     print("=" * 65)

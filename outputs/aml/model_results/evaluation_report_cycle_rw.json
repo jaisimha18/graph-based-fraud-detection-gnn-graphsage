@@ -1,0 +1,131 @@
+{
+  "model_name": "cycle_rw",
+  "roc_auc": 0.9703811324487609,
+  "pr_auc": 0.11125873295265837,
+  "best_threshold": 0.95,
+  "f1_score": 0.14411585099886592,
+  "fraud_recall": 0.7529626253418414,
+  "fraud_precision": 0.07968358093768088,
+  "confusion_matrix": [
+    [
+      198796,
+      9540
+    ],
+    [
+      271,
+      826
+    ]
+  ],
+  "pattern_recall": {
+    "overall": {
+      "total_in_test": 229,
+      "detected": 220,
+      "recall": 96.07,
+      "detected_any": 220,
+      "recall_any": 96.07,
+      "detected_majority": 212,
+      "recall_majority": 92.58,
+      "detected_full": 146,
+      "recall_full": 63.76,
+      "mean_coverage": 86.23
+    },
+    "by_type": {
+      "FAN-OUT": {
+        "total": 28,
+        "detected": 26,
+        "recall": 92.86,
+        "detected_any": 26,
+        "recall_any": 92.86,
+        "detected_majority": 26,
+        "recall_majority": 92.86,
+        "detected_full": 18,
+        "recall_full": 64.29,
+        "mean_coverage": 86.7
+      },
+      "CYCLE": {
+        "total": 28,
+        "detected": 27,
+        "recall": 96.43,
+        "detected_any": 27,
+        "recall_any": 96.43,
+        "detected_majority": 27,
+        "recall_majority": 96.43,
+        "detected_full": 20,
+        "recall_full": 71.43,
+        "mean_coverage": 90.39
+      },
+      "GATHER-SCATTER": {
+        "total": 43,
+        "detected": 40,
+        "recall": 93.02,
+        "detected_any": 40,
+        "recall_any": 93.02,
+        "detected_majority": 39,
+        "recall_majority": 90.7,
+        "detected_full": 18,
+        "recall_full": 41.86,
+        "mean_coverage": 77.45
+      },
+      "STACK": {
+        "total": 28,
+        "detected": 27,
+        "recall": 96.43,
+        "detected_any": 27,
+        "recall_any": 96.43,
+        "detected_majority": 26,
+        "recall_majority": 92.86,
+        "detected_full": 19,
+        "recall_full": 67.86,
+        "mean_coverage": 86.81
+      },
+      "RANDOM": {
+        "total": 24,
+        "detected": 24,
+        "recall": 100.0,
+        "detected_any": 24,
+        "recall_any": 100.0,
+        "detected_majority": 22,
+        "recall_majority": 91.67,
+        "detected_full": 17,
+        "recall_full": 70.83,
+        "mean_coverage": 89.44
+      },
+      "BIPARTITE": {
+        "total": 23,
+        "detected": 23,
+        "recall": 100.0,
+        "detected_any": 23,
+        "recall_any": 100.0,
+        "detected_majority": 21,
+        "recall_majority": 91.3,
+        "detected_full": 17,
+        "recall_full": 73.91,
+        "mean_coverage": 89.7
+      },
+      "FAN-IN": {
+        "total": 26,
+        "detected": 25,
+        "recall": 96.15,
+        "detected_any": 25,
+        "recall_any": 96.15,
+        "detected_majority": 23,
+        "recall_majority": 88.46,
+        "detected_full": 18,
+        "recall_full": 69.23,
+        "mean_coverage": 86.43
+      },
+      "SCATTER-GATHER": {
+        "total": 29,
+        "detected": 28,
+        "recall": 96.55,
+        "detected_any": 28,
+        "recall_any": 96.55,
+        "detected_majority": 28,
+        "recall_majority": 96.55,
+        "detected_full": 19,
+        "recall_full": 65.52,
+        "mean_coverage": 88.59
+      }
+    }
+  }
+}

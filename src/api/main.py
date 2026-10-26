@@ -27,6 +27,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+@app.get("/")
+@app.get("/health")
+def health_check():
+    return {
+        "status": "healthy",
+        "service": "GraphSAGE AML Fraud Detection API",
+        "model_loaded": model is not None,
+        "model_type": "cycle_attn" if is_cycle_model else ("baseline" if model else "none")
+    }
+
 # Load model globally
 device = torch.device("cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu")
 out_dir = os.path.join(AML_OUTPUT_DIR, "model_results")

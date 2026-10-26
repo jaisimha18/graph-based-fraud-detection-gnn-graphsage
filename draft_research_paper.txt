@@ -1,0 +1,456 @@
+\documentclass[conference]{IEEEtran}
+% This is a content-planning template, not an official conference-specific template.
+% Before submission, replace IEEEtran with the target conference's required class/template.
+\usepackage{cite}
+\usepackage{amsmath,amssymb}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\hypersetup{hidelinks}
+
+\title{Cycle-Aware GraphSAGE for Fraud Detection in Transaction Networks: A Reproducible Evaluation}
+\author{
+\IEEEauthorblockN{Phranav, JaisimhaReddy, Praneel, Adwaith Raveedran, Dr. Anbazhagan M(Guide)}
+\IEEEauthorblockA{Computer Science and Engineering, Amrita Vishwa Vidyapeetham, Coimbatore, India\\
+jaisimhareddy8@gmail.com}
+}
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Anti-money laundering (AML) detection is challenging because suspicious financial activity can involve coordinated transactions across multiple accounts, while individual transactions may appear legitimate. This paper presents a cycle-aware GraphSAGE architecture that combines graph-based neighborhood learning with structural cycle and return-flow information. The proposed method uses a random-walk cycle return probability extractor to generate 22-dimensional structural edge features from sparse transition matrix powers and a Cycle-Aware Attention Convolution layer that incorporates these features into neighborhood aggregation. The approach is evaluated on the HI-Small synthetic AML benchmark using a chronological train-validation-test protocol. Compared with vanilla GraphSAGE, the proposed model improves precision-recall area under the curve (PR-AUC) from 0.3227 to 0.5759, representing a relative increase of approximately 78.0\%. It also increases complete laundering-ring recall from 76.90\% to 85.15% across 229 verified test rings and reduces false positives from 7,005 to 4,764. The results indicate that incorporating structural cycle information through attention-based aggregation can improve detection performance on this benchmark. The findings are limited to the evaluated dataset and experimental protocol.
+
+
+\end{abstract}
+
+\begin{IEEEkeywords}
+graph neural networks, GraphSAGE, financial fraud detection, anti-money laundering,
+structural features, transaction networks
+\end{IEEEkeywords}
+
+\section{Introduction}
+\textbf{Purpose:} establish the problem and the specific gap; avoid a generic GNN overview.
+
+\subsection{Problem context}
+Financial fraud and money laundering are major challenges for financial institutions because suspicious activities can involve many connected accounts and transactions. In some cases, money is transferred through several accounts to hide its original source and make the activity difficult to identify. Looking at each transaction separately may not reveal the complete pattern because an individual transaction can appear normal even when it is part of a larger suspicious activity. Graph-based methods can help address this problem by representing accounts as nodes and transactions as directed edges. This representation allows the relationships between accounts to be studied along with transaction information. In this work, we investigate a cycle-aware GraphSAGE model that uses both neighborhood information and transaction cycle patterns to improve the detection of suspicious financial activity.
+
+\subsection{Limitations of existing approaches}
+Traditional machine learning methods often analyze transactions using individual transaction features, such as the transaction amount and account information. Although these methods can identify some suspicious activities, they may fail to capture relationships between multiple accounts involved in coordinated money laundering. Graph-based methods, such as GraphSAGE, address this limitation by learning from the connections between accounts and their neighboring transactions. However, standard GraphSAGE mainly uses neighborhood aggregation and may not explicitly capture structural patterns formed by repeated transaction flows or cycles. Simply adding cycle-related features to the model may also be insufficient, because these features can be diluted when information from many neighboring transactions is averaged together. These limitations motivate the use of a cycle-aware attention mechanism that can incorporate structural information into neighborhood learning.
+
+\subsection{Research gap and hypothesis}
+Although GraphSAGE can learn useful representations from transaction networks, its standard neighborhood aggregation does not explicitly focus on cycle-related transaction patterns. Such patterns may provide useful information for identifying coordinated money laundering activities. However, simply adding cycle features to a graph model does not guarantee better performance, as their contribution depends on how the information is incorporated into neighborhood learning. To address this gap, this work proposes a cycle-aware GraphSAGE model that combines structural cycle-return features with an attention-based aggregation mechanism. We hypothesize that this combination can improve the identification of suspicious transactions and laundering rings compared with standard GraphSAGE. The hypothesis is evaluated experimentally using the same dataset and evaluation protocol for the compared models.
+\subsection{Contributions}
+\begin{itemize}
+\item A cycle-return probability extraction method that generates 22-dimensional structural edge features using sparse transition matrix powers to represent transaction cycle patterns.
+
+\item A Cycle-Aware GraphSAGE architecture that incorporates cycle-related edge features into neighborhood aggregation through a learned attention mechanism.
+
+\item A chronological evaluation protocol that uses separate training, validation, and test periods to evaluate detection on future transactions while reducing temporal information leakage.
+
+\item An ablation study comparing Vanilla GraphSAGE, GraphSAGE with cycle features and mean aggregation, and the proposed cycle-aware attention model to examine the effect of different model components.
+
+\item An empirical evaluation using precision-recall performance, false-positive counts, and laundering-ring recall to assess the effectiveness of the proposed approach on the HI-Small synthetic AML benchmark.
+
+\end{itemize}
+Do not call the approach the first or state-of-the-art without a systematic, defensible search.
+
+\section{Related Work}
+Organize the section by research question rather than listing papers one by one.
+
+\subsection{Graph neural networks for fraud detection}
+Graph neural networks have become useful for fraud detection because they can learn from the relationships between connected accounts and transactions. Traditional machine learning methods mainly rely on individual transaction features, whereas graph-based methods can also consider the connections between entities. This is important in anti-money laundering because suspicious activities may involve several accounts and multiple transfers rather than a single unusual transaction. By combining transaction information with the structure of the network, graph neural networks can learn representations that help identify potentially suspicious patterns. However, their performance depends on the quality of the graph, the available labels, and the way information is collected from neighboring nodes. These challenges motivate the study of graph-learning methods that incorporate additional structural information, such as transaction cycles and return-flow patterns.
+
+\subsection{GraphSAGE and transaction-graph learning}
+GraphSAGE is a graph neural network method that learns node representations by sampling and aggregating information from neighboring nodes. Instead of learning a separate embedding for every node, it learns an aggregation function that can generate representations from node features and local graph structure. This makes GraphSAGE useful for learning from large transaction networks, where accounts are connected through many financial transfers. In anti-money laundering detection, neighborhood information can help reveal relationships that may not be visible from individual transaction attributes alone. However, standard GraphSAGE typically aggregates neighborhood information without explicitly emphasizing transaction-cycle patterns. In this work, GraphSAGE is used as the baseline model, while the proposed architecture incorporates cycle-return features into attention-based neighborhood aggregation to investigate whether structural information improves detection performance.[1]cite{hamilton2017}.
+
+\subsection{AML benchmarks and temporal methods}
+Anti-money laundering research uses different datasets and graph-learning methods to study suspicious financial activity. The IBM AML synthetic benchmark provides transaction records that can be represented as a directed graph, where accounts are nodes and financial transfers are edges. Unlike datasets that focus on cryptocurrency transactions, this benchmark represents transfers between bank accounts and supports the study of transaction patterns associated with money laundering. Temporal information is important because transactions occur in a particular order, and a model should not use future information when predicting suspicious activity. In this work, the HI-Small dataset is evaluated using a chronological split: transactions from September 1–8, 2022, are used for training, September 9 for validation, and September 10–18 for testing. This setup evaluates the model on transactions occurring after the training period and helps reduce temporal information leakage.
+
+\subsection{Structural motifs, cycles, and collusion}
+Structural motifs describe recurring patterns of connections in a graph and can provide information about how entities interact. In transaction networks, cycles and return flows may indicate that money moves through multiple accounts before returning to a previously visited account. Such patterns can be useful for investigating coordinated financial activity, although the presence of a cycle alone does not prove money laundering. Graph models that consider only node features or average information from neighboring nodes may not give sufficient importance to these structural patterns. In this work, cycle-return probabilities are extracted from powers of a sparse transition matrix and used to construct a 22-dimensional structural feature vector for transaction edges. These features are incorporated into an attention-based GraphSAGE model so that neighborhood aggregation can learn how structural information contributes to transaction classification.
+
+\section{Problem Definition and Dataset}
+\subsection{Task formulation}
+This work formulates anti-money laundering detection as a binary classification task on a transaction graph. The graph is represented as \(G_t=(V_t,E_t,X_t)\), where \(V_t\) denotes the accounts, \(E_t\) denotes the directed transactions between accounts, and \(X_t\) contains the available node and transaction features at time \(t\). Each transaction is classified as either legitimate or suspicious based on its associated label. The main objective is to identify suspicious transactions while limiting false-positive predictions on legitimate activity. The model is trained on earlier transactions and evaluated on a later time period to assess its ability to detect suspicious activity without relying on future information. In addition to transaction-level performance, laundering-ring recall is used to examine how effectively the model identifies transactions associated with known laundering rings, where the required ring labels are available.
+\subsection{Dataset provenance}
+This study uses the HI-Small dataset from the IBM AML synthetic transaction benchmark. The dataset contains simulated financial transactions and account information designed to support research on anti-money laundering detection. The transaction records include transfers between accounts, while the accompanying data provide information needed to identify suspicious activity. The dataset is synthetic rather than a collection of real customer transactions. In this work, the transaction records are represented as a directed graph, with accounts as nodes and transfers as edges. The experiments use the available transaction labels and follow a chronological training, validation, and testing procedure. As the data are synthetic, the results should be interpreted as evidence from this benchmark and may not directly reflect performance on real financial institution data.
+
+\subsection{Dataset statistics}
+\begin{table}[t]
+\centering
+\caption{Dataset summary (replace all placeholders with verified counts).}
+\label{tab:data}
+\begin{tabular}{lr}
+\toprule
+Statistic & Value\\
+\midrule
+Nodes & [518,573]\\
+Edges & [4,926,576]\\
+Node/edge node & [directed multi-edge]\\
+Feature dimensions & [Node: 8 / Edge: 14 raw (22 cycle-aug.)]\\
+Positive examples & [5,753 (0.1168\% illicit)]\\
+Time range / snapshots & [Sept 01, 2022 -- Sept 18, 2022 (18 days)]\\
+Known rings / typologies & [370 total rings (229 in test) across 8 typologies]\\
+\bottomrule
+\end{tabular}
+\end{table}
+The HI-Small dataset contains directed financial transactions between accounts and exhibits a strong imbalance between legitimate and laundering activity. The test set contains 209,433 transactions, of which 208,336 are legitimate and 1,097 are labeled as laundering. Thus, laundering transactions account for approximately 0.52\% of the test set, making the detection task challenging. The graph preserves transaction direction, so an edge from one account to another represents a transfer from the sending account to the receiving account. Since transactions are represented as directed edges, cycles may occur when transfers form a path that eventually returns to an earlier account. Such cycles are treated as structural signals for the model, rather than definitive evidence of money laundering. The evaluation therefore uses PR-AUC, false-positive counts, and laundering-ring recall to assess detection performance under class imbalance.
+
+\subsection{Graph construction and leakage prevention}
+The transaction network is represented as a directed graph in which each node corresponds to an account and each edge represents a financial transaction from a source account to a destination account. Transaction attributes are associated with the corresponding edges, while available account attributes are used as node features. The direction of each edge is preserved to represent the flow of funds between accounts. The graph is constructed from the HI-Small transaction records, and the available transaction labels are used for supervised model training and evaluation.
+
+To reduce temporal information leakage, the data are divided chronologically. Transactions from September 1–8, 2022, are used for training, September 9 is used for validation, and transactions from September 10–18 are reserved for testing. The validation period is used for model selection, while the test period is held out for final evaluation. Feature computation and preprocessing must use only information available at the relevant prediction time; any data-dependent transformations are fitted on the training data and then applied to validation and test data. Cycle-return features are computed from the transaction graph using sparse transition matrix powers, with care taken to avoid incorporating future transaction information into predictions.
+
+\section{Method}
+\subsection{Overview}
+The proposed method extends GraphSAGE by incorporating transaction-cycle information into neighborhood aggregation. The overall pipeline consists of transaction data preparation, chronological data splitting, graph construction, cycle-return feature extraction, model training, and performance evaluation. First, the HI-Small transaction records are organized into a directed graph in which accounts are represented as nodes and financial transfers as edges. Next, cycle-return probabilities are computed using sparse transition matrix powers, producing a 22-dimensional structural feature vector for transaction edges. These features are incorporated into the proposed CycleAwareSAGEConv layer, which learns attention weights from the source-node representation, target-node representation, and associated cycle features. The resulting neighborhood representations are used to classify transactions as legitimate or suspicious. Finally, the proposed model is compared with Vanilla GraphSAGE and GraphSAGE using cycle features with mean aggregation, using PR-AUC, false-positive counts, and laundering-ring recall.
+
+\subsection{Baseline: Vanilla GraphSAGE}
+
+Vanilla GraphSAGE is used as the baseline to evaluate whether incorporating
+transaction-cycle information improves suspicious transaction detection.
+GraphSAGE learns node representations by aggregating information from
+neighboring nodes. In the mean aggregation approach, the neighborhood
+representation of node $i$ is computed as
+\begin{equation}
+  \mathbf{h}_{\mathcal{N}(i)} = \frac{1}{|\mathcal{N}(i)|}
+  \sum_{j \in \mathcal{N}(i)} \mathbf{h}_j .
+  \label{eq:mean-agg}
+\end{equation}
+Here, $\mathcal{N}(i)$ denotes the set of neighboring nodes of node $i$, and
+$\mathbf{h}_j$ is the feature representation of neighbor $j$. The mean
+operation combines information from neighboring accounts without explicitly
+assigning different importance to neighbors according to transaction-cycle
+structure.
+
+Three GraphSAGE-based configurations are considered in this study. The first
+is vanilla GraphSAGE, which uses standard neighborhood aggregation without
+cycle-return edge features. The second incorporates cycle-related features
+while retaining mean aggregation. The third is the proposed Cycle-Aware
+GraphSAGE model, which uses a learned attention mechanism conditioned on node
+representations and structural edge features. All three models are evaluated
+using the same chronological data split and evaluation metrics. This
+comparison investigates whether including cycle-related information improves
+detection, and whether attention-based aggregation can use that information
+more effectively than uniform mean aggregation.
+
+\subsection{Cycle/return descriptor}
+
+The cycle-return descriptor captures structural patterns in the directed
+transaction graph. Let $\mathbf{A}$ denote the adjacency matrix of the graph,
+and let $\mathbf{D}_{\mathrm{out}}$ denote the diagonal matrix of out-degrees,
+where each diagonal entry is the maximum of $1$ and the number of outgoing
+edges of the corresponding account. The row-stochastic transition matrix
+$\mathbf{P}$ is defined as
+\begin{equation}
+  \mathbf{P} = \mathbf{D}_{\mathrm{out}}^{-1}\mathbf{A}.
+  \label{eq:transition}
+\end{equation}
+Each entry $P_{uv}$ is the probability of moving from account $u$ to
+account $v$ in one step.
+
+For a directed transaction from account $u$ to account $v$, the
+\emph{return probability} is the probability that a random walk starting at
+$v$ returns to $u$ after exactly $k$ steps:
+\begin{equation}
+  R_k(u,v) = \left[\mathbf{P}^{k}\right]_{v,u}, \qquad k \in \{1,2,3,4\}.
+  \label{eq:return}
+\end{equation}
+These probabilities capture return paths of different lengths, including
+reciprocal transfers ($k=1$) and longer cycles involving multiple accounts.
+
+To combine return probabilities across path lengths, a discounted cumulative
+cycle score is computed with decay factor $\gamma = 0.8$:
+\\begin{equation}
+  R_{\mathrm{disc}}(u,v) = R_1 + 0.8\,R_2 + 0.64\,R_3 + 0.512\,R_4 .
+  \label{eq:discounted}
+\end{equation}
+This weighting favors shorter return paths while still incorporating
+information from longer cycles.
+
+The cycle-related measurements are concatenated with the 14 raw transaction
+attributes to form a 22-dimensional edge feature vector, consisting of the
+14 raw attributes, the four return probabilities $R_1,\dots,R_4$, the
+discounted score $R_{\mathrm{disc}}$, and three binary indicators
+$\mathbb{1}[R_k > 0]$ for $k = 1,2,3$. These structural features give the
+proposed Cycle-Aware GraphSAGE model additional information about transaction
+paths. However, the presence of a cycle does not, by itself, establish that a
+transaction is fraudulent or associated with money laundering.
+
+\subsection{CycleAwareSAGEConv}
+\subsection{CycleAwareSAGEConv}
+
+The proposed CycleAwareSAGEConv layer extends the standard GraphSAGE
+aggregation mechanism by incorporating structural edge information into the
+attention calculation. For each directed edge from a source node $j$ to a
+target node $i$, the attention score is computed from the source-node
+embedding, the target-node embedding, and the 22-dimensional cycle-aware edge
+descriptor:
+\begin{equation}
+  s_{ji} = \mathbf{w}_2^{\top}\,
+  \operatorname{LeakyReLU}\!\left(
+    \mathbf{W}_1\,[\mathbf{h}_j \,\Vert\, \mathbf{h}_i \,\Vert\, \mathbf{e}_{ji}]
+    + \mathbf{b}_1
+  \right) + b_2 .
+  \label{eq:att-score}
+\end{equation}
+Here, $\mathbf{h}_j$ and $\mathbf{h}_i$ are the source and target node
+embeddings, respectively, $\mathbf{e}_{ji}$ is the structural edge descriptor,
+and $\Vert$ denotes concatenation. The attention network uses a 32-dimensional
+hidden layer and a LeakyReLU activation with negative slope 0.2.
+
+The attention scores are normalized across the incoming neighborhood of target
+node $i$ using the softmax function:
+\begin{equation}
+  \alpha_{ji} =
+  \frac{\exp(s_{ji})}{\sum_{k \in \mathcal{N}(i)} \exp(s_{ki})}.
+  \label{eq:softmax}
+\end{equation}
+The coefficient $\alpha_{ji}$ determines the relative importance of neighbor
+$j$ when updating node $i$. The node representation is then updated by
+combining a transformed self-embedding with attention-weighted neighbor
+information and transformed edge features:
+\begin{equation}
+  \mathbf{h}_i^{(l)} = \mathbf{W}_{\mathrm{self}}\,\mathbf{h}_i^{(l-1)}
+  + \sum_{j \in \mathcal{N}(i)} \alpha_{ji}
+  \Big( \mathbf{W}_{\mathrm{neigh}}\,\mathbf{h}_j^{(l-1)}
+  + \mathbf{W}_{\mathrm{edge}}\,\mathbf{e}_{ji} \Big).
+  \label{eq:update}
+\end{equation}
+In this equation, $l$ is the layer index. The matrices
+$\mathbf{W}_{\mathrm{self}}$, $\mathbf{W}_{\mathrm{neigh}}$, and
+$\mathbf{W}_{\mathrm{edge}}$ learn how to combine self-information,
+neighboring-node information, and structural edge information. This allows the
+model to assign greater importance to transaction relationships whose local
+graph structure is more informative for fraud detection.
+
+
+\subsection{Training objective}
+
+The model is trained as a binary transaction-classification task, where each
+transaction is labeled as either legitimate or associated with money
+laundering. The final node representations of the source and destination
+accounts are combined with the corresponding edge features to form a
+transaction representation. This representation is passed through a
+feed-forward classification head, which applies a ReLU activation in its
+hidden layer and a sigmoid activation in the output layer to estimate the
+probability that a transaction is suspicious.
+
+Because laundering transactions are much less frequent than legitimate
+transactions, the training objective uses weighted binary cross-entropy to
+give greater importance to positive examples. Let $y \in \{0,1\}$ denote the
+true transaction label and let $\hat{y} \in (0,1)$ denote the predicted
+probability of money laundering. The loss is calculated over a mini-batch of
+transactions $\mathcal{B}$, with a positive-class weight $w_{+} = 10.0$:
+\begin{equation}
+  \mathcal{L} = -\frac{1}{|\mathcal{B}|}
+  \sum_{i \in \mathcal{B}}
+  \Big[ w_{+}\, y_i \log(\hat{y}_i) + (1 - y_i)\log(1 - \hat{y}_i) \Big].
+  \label{eq:wbce}
+\end{equation}
+Here, $|\mathcal{B}|$ is the number of transactions in the batch. The label
+$y$ is $1$ for laundering transactions and $0$ for legitimate transactions.
+The positive-class weight increases the penalty for incorrectly predicting a
+laundering transaction as legitimate. The model parameters are optimized using
+this loss on the training data, while the validation data are used for model
+selection. The held-out test set is used for the final performance evaluation.
+
+\subsection{Complexity}
+The computational cost of the proposed method mainly comes from cycle-feature extraction, neighborhood aggregation, and model training. During cycle-feature extraction, sparse transition matrix operations are used to obtain return probabilities for paths of different lengths. The computational cost depends on the sparsity of the transaction graph and the intermediate results generated by matrix multiplication. Sparse operations help avoid storing a dense transition matrix, which would be expensive for a graph containing hundreds of thousands of accounts.
+
+During model training, the CycleAwareSAGEConv layer calculates attention scores for neighboring accounts using their representations and associated edge features. The aggregation cost therefore depends on the number of edges processed, the neighborhood sizes, the feature dimensions, and the hidden-layer dimensions. The edge-classification head then combines the source and destination node representations with transaction features to produce a prediction.
+
+Although the cycle-aware model introduces additional computation compared with standard mean-aggregation GraphSAGE, it provides a mechanism for learning the importance of structural transaction patterns. The practical trade-off is between this additional computational cost and the observed improvement in detection performance. Exact runtime and memory comparisons should be reported only when measured under the same hardware and experimental settings for all evaluated models.
+
+\section{Experimental Setup}
+\subsection{Research questions}
+This study evaluates the proposed Cycle-Aware GraphSAGE model through the following research questions:
+\begin{itemize}
+\item RQ1: Does Cycle-Aware GraphSAGE improve transaction classification performance compared with Vanilla GraphSAGE?
+\item Does incorporating cycle-return features through mean aggregation improve performance, and how does it compare with the proposed attention-based approach?
+\item How does the proposed model affect laundering-ring recall and false-positive counts compared with the baseline models?
+
+\end{itemize}
+These questions are investigated using the same chronological data split and evaluation metrics across the compared GraphSAGE models. The analysis focuses on PR-AUC, laundering-ring recall, and false-positive counts to assess both detection performance and the number of legitimate transactions incorrectly flagged.
+
+\subsection{Baselines}
+Three GraphSAGE-based models are compared to evaluate the contribution of cycle-related structural information and attention-based aggregation. The first model is Vanilla GraphSAGE, which uses standard neighborhood aggregation without cycle-return features. The second model incorporates cycle-related edge features while retaining mean aggregation, allowing us to examine whether adding structural information alone improves detection performance. The third model is the proposed Cycle-Aware GraphSAGE, which uses the cycle-related edge features within a learned attention mechanism during neighborhood aggregation.
+
+All three models are evaluated using the same chronological training, validation, and test periods. Their performance is compared using PR-AUC, false-positive counts, and laundering-ring recall. This comparison helps distinguish the effect of adding cycle features from the effect of incorporating those features through attention-based aggregation. Tabular baselines, such as Random Forest and XGBoost, should be reported only with their verified experimental results and comparable evaluation settings.
+
+\subsection{Metrics}
+The models are evaluated using precision-recall area under the curve
+(PR-AUC), false-positive counts, and laundering-ring recall. PR-AUC is used
+as the primary transaction-level metric because laundering transactions
+represent a small proportion of the test set. Unlike accuracy, PR-AUC gives a
+more informative assessment of the trade-off between precision and recall
+under class imbalance.
+
+Precision is the proportion of transactions predicted as laundering that are
+actually labeled as laundering, while recall is the proportion of labeled
+laundering transactions that are correctly identified:
+\begin{equation}
+  \mathrm{Precision} = \frac{TP}{TP + FP}, \qquad
+  \mathrm{Recall} = \frac{TP}{TP + FN}.
+  \label{eq:prec-rec}
+\end{equation}
+The F1-score is the harmonic mean of precision and recall:
+\begin{equation}
+  F_1 = 2 \cdot \frac{\mathrm{Precision} \times \mathrm{Recall}}
+                     {\mathrm{Precision} + \mathrm{Recall}}.
+  \label{eq:f1}
+\end{equation}
+Here, $TP$, $FP$, and $FN$ denote the numbers of true positives, false
+positives, and false negatives, respectively. A false positive is a legitimate
+transaction incorrectly flagged as suspicious, whereas a false negative is a
+laundering transaction that the model fails to identify. PR-AUC summarizes the
+precision-recall curve across classification thresholds, while the
+false-positive count is the number of legitimate transactions incorrectly
+flagged at the selected operating threshold.
+
+Laundering-ring recall assesses detection at the ring level, provided reliable
+ground-truth ring labels are available. It is the proportion of known
+laundering rings identified by the model according to the ring-detection rule.
+The ring definition and detection criterion should be stated explicitly so
+that results can be interpreted consistently. All metrics are computed on the
+held-out test period after model selection on the validation data.
+
+\subsection{Implementation and reproducibility}
+The proposed model is implemented in Python using a graph-learning pipeline designed for transaction classification. The cycle-return feature extraction stage is implemented in `cycle_features.py`, while the attention-based convolution layer is implemented in `cycle_graphsage_model.py`. The experiments use the HI-Small synthetic anti-money laundering benchmark, with transactions divided chronologically into training, validation, and test periods. Transactions from September 1–8, 2022, are used for training, September 9 is used for validation, and September 10–18 are reserved for testing.
+
+For reproducibility, the model architecture, feature extraction procedure, data split, training configuration, and evaluation metrics should be documented consistently. The comparison models should use the same data partitions and evaluation protocol wherever applicable. The final report should also specify the random seeds, software and library versions, hardware configuration, optimizer settings, batch size, number of training epochs, and checkpoint-selection procedure used in the experiments. Any preprocessing or feature computation that depends on data statistics should be fitted using training data only, where applicable, to avoid information leakage.
+
+The dataset used in this study is synthetic, and its use is subject to the terms provided by its source. Reproducing the experiments requires access to the HI-Small transaction data, the model and feature extraction code, and the corresponding configuration files. Exact software versions, hardware details, random seeds, and code availability should be reported based on the actual experimental environment.
+
+\section{Results}
+
+\subsection{Main comparison}
+
+\begin{table*}[!t]
+\centering
+\caption{Main results on the held-out chronological test period (single run). Best values are in bold.}
+\label{tab:main}
+\begin{tabular}{lccc}
+\toprule
+Model & PR-AUC & Ring Recall (\%) & False Positives\\
+\midrule
+GraphSAGE (vanilla)              & 0.3227          & 76.90          & 7{,}005\\
+GraphSAGE + cycle features       & 0.1113          & 63.76          & 9{,}540\\
+Cycle-Aware GraphSAGE (proposed) & \textbf{0.5759} & \textbf{85.15} & \textbf{4{,}764}\\
+\bottomrule
+\end{tabular}
+\end{table*}
+
+The performance of the proposed Cycle-Aware GraphSAGE model is compared with
+vanilla GraphSAGE and GraphSAGE augmented with cycle features using mean
+aggregation. All three models are evaluated on the same chronological test
+period. Performance is assessed using PR-AUC, laundering-ring recall, and
+false-positive counts (Table~\ref{tab:main}).
+
+Vanilla GraphSAGE achieves a PR-AUC of 0.3227, a laundering-ring recall of
+76.90\%, and 7{,}005 false positives. Adding cycle features with mean
+aggregation results in a PR-AUC of 0.1113 and a laundering-ring recall of
+63.76\%, with 9{,}540 false positives. In comparison, the proposed
+Cycle-Aware GraphSAGE model achieves a PR-AUC of 0.5759 and a laundering-ring
+recall of 85.15\%, with 4{,}764 false positives.
+
+Compared with vanilla GraphSAGE, the proposed model improves PR-AUC by
+approximately 78.5\% (an absolute gain of 0.2532), increases laundering-ring
+recall by 8.25 percentage points, and reduces false positives by 2{,}241.
+These results suggest that adding cycle features alone does not guarantee
+improved performance; how structural information is incorporated into
+neighborhood aggregation is also important. The reported values reflect the
+evaluated test split and should not be interpreted as averages across
+repeated random seeds unless additional runs were performed.
+
+\begin{table}[ht]
+\centering
+\caption{\textsc{Ablation Results (Same Split and Tuning Protocol).}}
+\label{tab:ablation_results}
+\small
+\renewcommand{\arraystretch}{1.15}
+\begin{tabular}{lcc}
+\toprule
+Variant & PR-AUC & Ring Recall@K \\
+\midrule
+GraphSAGE only & 0.3235 & 76.9\% \\
+No cycle descriptor & 0.3614 & 78.4\% \\
+No attention & 0.1113 & 63.8\% \\
+Remove selected hop orders & 0.4682 & 79.5\% \\
+Shuffled descriptor control & 0.1385 & 65.1\% \\
+Full model & \textbf{0.5759} & \textbf{85.2\%} \\
+\bottomrule
+\end{tabular}
+\end{table}
+Table~\ref{tab:ablation_results} shows that the gains of the full model do not
+come from either component alone. Removing the cycle descriptor yields a
+PR-AUC of 0.3614, only slightly above vanilla GraphSAGE (0.3235), while
+retaining the descriptor but removing structural attention drops PR-AUC to
+0.1113, indicating that cycle features are harmful under uniform mean
+aggregation. Removing selected hop orders reduces PR-AUC from 0.5759 to
+0.4682 and ring recall from 85.2\% to 79.5\%, so the omitted hop orders
+carry useful signal. The shuffled-descriptor control, which preserves input
+dimensionality but breaks the alignment between descriptors and edges,
+performs far worse (PR-AUC 0.1385), indicating that the improvement stems from
+meaningful structural alignment rather than from additional input dimensions.
+These results are from a single run on the held-out test period.
+
+\subsection{Temporal and subgroup analysis}
+The evaluation uses a chronological split, with transactions from September 1–8, 2022, used for training, September 9 used for validation, and September 10–18 reserved for testing. This setup assesses performance on transactions occurring after the training period. The reported test results summarize performance across the complete held-out test period; separate performance measurements for individual test days or laundering-ring types are not reported here.
+
+The test set contains 209,433 transactions, including 1,097 laundering transactions and 208,336 legitimate transactions. This class imbalance is an important consideration when interpreting model performance. Although the proposed model achieves a PR-AUC of 0.5759 and a ring recall of 85.15% in the reported evaluation, further analysis across individual time periods, ring sizes, and laundering typologies would be needed to establish whether the gains remain consistent across different subgroups.
+\subsection{Efficiency and scalability}
+The evaluation uses a chronological split, with transactions from September 1–8, 2022, used for training, September 9 used for validation, and September 10–18 reserved for testing. This setup assesses performance on transactions occurring after the training period. The reported test results summarize performance across the complete held-out test period; separate performance measurements for individual test days or laundering-ring types are not reported here.
+
+The test set contains 209,433 transactions, including 1,097 laundering transactions and 208,336 legitimate transactions. This class imbalance is an important consideration when interpreting model performance. Although the proposed model achieves a PR-AUC of 0.5759 and a ring recall of 85.15% in the reported evaluation, further analysis across individual time periods, ring sizes, and laundering typologies would be needed to establish whether the gains remain consistent across different subgroups.
+\section{Discussion}
+The experimental results support the hypothesis that incorporating cycle-related structural information through attention-based neighborhood aggregation can improve transaction classification on the evaluated HI-Small test split. The proposed Cycle-Aware GraphSAGE model achieves a PR-AUC of 0.5759, compared with 0.3227 for Vanilla GraphSAGE, representing an improvement of approximately 78.0%. It also increases laundering-ring recall from 76.90% to 85.15% and reduces false positives from 7,005 to 4,764.
+
+The ablation results provide further insight into the contribution of the model components. Adding cycle features with mean aggregation produces a PR-AUC of 0.1113 in the main comparison, while the proposed attention-based model achieves 0.5759. The separate ablation table reports a PR-AUC of 0.3614 for the variant without the cycle descriptor and 0.1385 for the shuffled-descriptor control. Together, these results suggest that performance depends on how structural features are incorporated, rather than simply on increasing the number of input features. The differences between the main comparison and ablation results should be interpreted according to their respective experimental configurations.
+
+These findings should be interpreted within the scope of the synthetic benchmark and the reported chronological test split. The experiments do not establish that the same improvements will occur on real financial transaction networks or under different temporal conditions. In practical anti-money laundering systems, false-positive alerts can increase investigation workload, while missed suspicious transactions may allow illicit activity to go undetected. Therefore, any deployment would require further validation, threshold calibration, and human review. A model score should be treated as an indicator for investigation, not as proof of wrongdoing.
+
+\section{Limitations, Ethics, and Responsible Use}
+This study has several limitations. First, the experiments use the HI-Small synthetic anti-money laundering benchmark, which may not fully represent the complexity, diversity, and changing behavior of real financial transactions. Consequently, the reported performance should not be assumed to transfer directly to operational banking systems. Second, the evaluation uses a particular chronological split, and results across different time periods, institutions, and laundering typologies have not yet been established. Additional experiments across multiple time windows and datasets are needed to assess generalizability.
+
+Third, the dataset labels and available features may contain limitations that affect model evaluation. The cycle-return features capture structural patterns in transaction flows, but such patterns are not unique to money laundering and may also occur in legitimate financial activity. False-positive predictions can impose additional work on investigators, while false negatives may leave suspicious transactions undetected. Moreover, model predictions can be affected by incomplete information, changes in transaction behavior, and differences between synthetic and real-world data.
+
+For responsible use, the proposed model should support, rather than replace, human investigation and established compliance procedures. A predicted suspicious transaction should not be treated as proof of criminal activity or used as the sole basis for punitive action. Any practical deployment should include appropriate privacy and access controls, ongoing performance monitoring, threshold review, and evaluation for unintended bias. Further validation on representative real-world data, subject to legal and privacy requirements, is necessary before considering operational use.
+
+\section{Conclusion and Future Work}
+This work presented a Cycle-Aware GraphSAGE model for detecting suspicious transactions in financial transaction networks. The approach combines cycle-return structural features with an attention-based neighborhood aggregation mechanism. The evaluation on the HI-Small synthetic anti-money laundering benchmark showed that the proposed model achieved a PR-AUC of 0.5759, compared with 0.3227 for Vanilla GraphSAGE. Laundering-ring recall increased from 76.90% to 85.15%, while the number of false positives decreased from 7,005 to 4,764 on the reported test split.
+
+The results indicate that incorporating structural transaction information through learned attention can be beneficial in the evaluated setting. However, these findings are based on a single reported chronological test evaluation and synthetic data; they do not establish performance across repeated runs or real financial institutions. Further work should evaluate the approach across multiple time periods and independent datasets, investigate performance across different laundering patterns, and measure computational cost and memory requirements under controlled conditions. Future research could also explore more detailed temporal graph representations and methods for improving interpretability and reducing false-positive alerts. These steps would help determine the robustness and practical value of cycle-aware graph learning for anti-money laundering applications.
+
+
+
+\begin{thebibliography}{00}
+\bibitem{hamilton2017}
+W. L. Hamilton, R. Ying, and J. Leskovec, ``Inductive Representation Learning on Large Graphs,'' in \emph{Advances in Neural Information Processing Systems}, 2017. [Online]. Available: \url{https://proceedings.neurips.cc/paper/2017/hash/5dd9db5e033da9c6fb5ba83c7a7ebea9-Abstract.html}
+
+\bibitem{weber2019}
+M. Weber et al., ``Anti-Money Laundering in Bitcoin: Experimenting with Graph Convolutional Networks for Financial Forensics,'' 2019. [Online]. Available: \url{https://arxiv.org/abs/1908.02591}
+
+\bibitem{motie2024}
+S. Motie and B. Raahemi, ``Financial fraud detection using graph neural networks: A systematic review,'' \emph{Expert Systems with Applications}, vol. 240, art. 122156, 2024, doi: 10.1016/j.eswa.2023.122156.
+
+\bibitem{cheng2024}
+D. Cheng, Y. Zou, S. Xiang, and C. Jiang, ``Graph Neural Networks for Financial Fraud Detection: A Review,'' 2024. [Online]. Available: \url{https://arxiv.org/abs/2411.05815}
+
+\bibitem{altman2023}
+E. Altman et al., ``Realistic Synthetic Financial Transactions for Anti-Money Laundering Models,'' in \emph{NeurIPS 2023 Datasets and Benchmarks Track}, 2023, doi: 10.52202/075280-1300.
+
+\bibitem{jensen2023}
+R. I. T. Jensen et al., ``A synthetic data set to benchmark anti-money laundering methods,'' \emph{Scientific Data}, vol. 10, art. 661, 2023, doi: 10.1038/s41597-023-02569-2.
+
+\bibitem{saldana2024}
+D. Salda\~na-Ulloa, G. De Ita Luna, and J. R. Marcial-Romero, ``A Temporal Graph Network Algorithm for Detecting Fraudulent Transactions on Online Payment Platforms,'' \emph{Algorithms}, vol. 17, no. 12, art. 552, 2024, doi: 10.3390/a17120552.
+
+\bibitem{jiao2026}
+Y. Jiao et al., ``Dynamic heterogeneous graph contrastive learning for uncovering collusive financial fraud,'' \emph{Scientific Reports}, 2026. [Online]. Available: \url{https://www.nature.com/articles/s41598-026-58938-5}
+\end{thebibliography}
+
+\end{document}
