@@ -166,6 +166,47 @@ async def predict_transactions(file: UploadFile = File(...)):
         else:
             cycle_feat_np = np.zeros((len(df), 8), dtype=np.float32)
         edge_attr_np = np.hstack([edge_attr_np, cycle_feat_np])
+    else:
+        cycle_feat_np = None
+
+    # Identify directed simple cycles (rings) in the uploaded transaction graph
+    adj = {}
+    for _, r in df.iterrows():
+        u, v = str(r["Account"]), str(r["Account.1"])
+        adj.setdefault(u, []).append(v)
+
+    seen_cycles = set()
+    detected_rings = []
+
+    def find_cycles(start, curr, path, visited):
+        if len(path) > 7:
+            return
+        for nxt in adj.get(curr, []):
+            if nxt == start and len(path) >= 2:
+                cycle_tuple = tuple(path)
+                min_idx = cycle_tuple.index(min(cycle_tuple))
+                canon = cycle_tuple[min_idx:] + cycle_tuple[:min_idx]
+                if canon not in seen_cycles:
+                    seen_cycles.add(canon)
+                    ring_nodes = path + [start]
+                    detected_rings.append({
+                        "ringId": len(detected_rings) + 1,
+                        "hops": len(path),
+                        "path": ring_nodes,
+                        "pathDisplay": " ➔ ".join(ring_nodes),
+                    })
+            elif nxt not in visited and len(path) < 7:
+                find_cycles(start, nxt, path + [nxt], visited | {nxt})
+
+    for n in sorted(adj.keys()):
+        find_cycles(n, n, [n], {n})
+
+    # Set of directed edges (u, v) in any detected ring
+    ring_edges = set()
+    for ring in detected_rings:
+        p = ring["path"]
+        for k in range(len(p) - 1):
+            ring_edges.add((p[k], p[k + 1]))
 
     # Move to tensors
     x = torch.tensor(node_features, dtype=torch.float).to(device)
@@ -189,7 +230,7 @@ async def predict_transactions(file: UploadFile = File(...)):
     if "Is Laundering" in df.columns:
         actual_fraud = int(df["Is Laundering"].sum())
     
-    # Links: {source: account, target: account, prediction: float, isFraud: bool}
+    # Links: {source: account, target: account, prediction: float, isFraud: bool, inCycle: bool, ...}
     links_out = []
     for i, row in df.iterrows():
         source = str(row["Account"])
@@ -197,22 +238,68 @@ async def predict_transactions(file: UploadFile = File(...)):
         pred_score = float(preds[i])
         is_fraud = bool(pred_score > best_thresh)
         amt = float(row["Amount Paid"])
+        
+        in_ring = (source, target) in ring_edges
+        c_prob = 0.0
+        has_c = in_ring
+        c_hop = 0
+        if is_cycle_model and cycle_feat_np is not None:
+            c_prob = float(cycle_feat_np[i, 4])
+            has_c = bool(in_ring or cycle_feat_np[i, 4] > 0 or np.any(cycle_feat_np[i, 5:8] > 0))
+            if cycle_feat_np[i, 5] > 0:
+                c_hop = 2
+            elif cycle_feat_np[i, 6] > 0:
+                c_hop = 3
+            elif cycle_feat_np[i, 7] > 0:
+                c_hop = 4
+            elif cycle_feat_np[i, 3] > 0:
+                c_hop = 5
+            elif in_ring:
+                for r in detected_rings:
+                    if (source, target) in zip(r["path"][:-1], r["path"][1:]):
+                        c_hop = len(r["path"]) - 1
+                        break
+
         links_out.append({
             "source": source,
             "target": target,
             "prediction": pred_score,
             "isFraud": is_fraud,
+            "inCycle": has_c,
+            "cycleHop": c_hop,
+            "cycleProb": round(c_prob, 4),
+            "isLaunderingCycle": bool(is_fraud and has_c),
             "amount": amt,
             "timestamp": str(row["Timestamp"]),
-            "currency": str(row["Payment Currency"])
+            "currency": str(row["Payment Currency"]),
+            "fromBank": str(row["From Bank"]),
+            "toBank": str(row["To Bank"]),
         })
+
+    # Enrich rings with amount and edge predictions
+    for ring in detected_rings:
+        p = ring["path"]
+        ring_pairs = set((p[k], p[k + 1]) for k in range(len(p) - 1))
+        matching_links = [l for l in links_out if (l["source"], l["target"]) in ring_pairs]
+        ring["totalAmount"] = round(sum(l["amount"] for l in matching_links), 2)
+        ring["currency"] = matching_links[0]["currency"] if matching_links else "USD"
+        ring["flaggedEdges"] = sum(1 for l in matching_links if l["isFraud"])
+        ring["totalEdges"] = len(matching_links)
+        ring["isLaundering"] = bool(ring["flaggedEdges"] > 0)
+        ring["avgPrediction"] = round(float(np.mean([l["prediction"] for l in matching_links])), 4) if matching_links else 0.0
         
     return {
         "nodes": nodes_out,
         "links": links_out,
         "threshold": float(best_thresh),
         "actualFraudCount": actual_fraud,
-        "modelUsed": "cycle_attn" if is_cycle_model else "baseline"
+        "modelUsed": "cycle_attn" if is_cycle_model else "baseline",
+        "cycleAnalysis": {
+            "totalRingsFound": len(detected_rings),
+            "totalCycleEdges": sum(1 for l in links_out if l.get("inCycle")),
+            "launderingCyclesCount": sum(1 for l in links_out if l.get("isLaunderingCycle")),
+            "detectedRings": detected_rings
+        }
     }
 
 @app.get("/api/ablation")

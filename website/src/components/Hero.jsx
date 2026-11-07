@@ -1,10 +1,11 @@
-import { Shield, GitBranch, Activity } from 'lucide-react';
+import { Shield, GitBranch, Activity, Repeat, TrendingUp } from 'lucide-react';
 import './Hero.css';
 
 const stats = [
   { value: '518K+', label: 'Accounts Analyzed', icon: Shield },
   { value: '5M+', label: 'Transactions Processed', icon: Activity },
-  { value: '979:1', label: 'Class Imbalance Handled', icon: GitBranch },
+  { value: '85.2%', label: 'Closed Ring Recall', icon: Repeat },
+  { value: '+78.5%', label: 'PR-AUC Improvement', icon: TrendingUp },
 ];
 
 export default function Hero() {
@@ -19,26 +20,24 @@ export default function Hero() {
 
       <div className="container hero-content">
         <div className="hero-badge animate-in">
-          <span className="badge badge-blue">
-            <Shield size={14} />
-            Graph Neural Network Research
+          <span className="badge badge-purple">
+            <Repeat size={14} />
+            Cycle-Aware Graph Neural Network Research
           </span>
         </div>
 
         <h1 className="hero-title animate-in animate-in-delay-1">
-          Graph-Based{' '}
+          Cycle-Aware{' '}
           <span className="hero-title-accent">Anti-Money Laundering</span>
           <br />Detection with GraphSAGE
         </h1>
 
         <p className="hero-description animate-in animate-in-delay-2">
-          Leveraging inductive Graph Neural Networks and PyTorch Geometric to detect
-          complex, multi-hop money laundering patterns in financial transaction networks
-          — going beyond traditional rule-based systems.
+          Combining inductive Graph Neural Networks with random-walk cycle feature extraction and learned structural attention. Automatically detects and isolates complex, circular money-laundering schemes across millions of transactions.
         </p>
 
         <div className="hero-tech-stack animate-in animate-in-delay-3">
-          {['PyTorch Geometric', 'GraphSAGE', 'Python', 'IBM AML Dataset'].map((tech) => (
+          {['PyTorch Geometric', 'Cycle Attention', 'GraphSAGE', 'Random Walk Cycles', 'IBM AML Dataset'].map((tech) => (
             <span key={tech} className="tech-pill">{tech}</span>
           ))}
         </div>
