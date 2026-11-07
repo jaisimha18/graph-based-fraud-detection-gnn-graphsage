@@ -1,0 +1,138 @@
+/* ===== Typology Breakdown Section ===== */
+.typology-section {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.4) 0%, rgba(30, 27, 75, 0.2) 100%);
+  padding: 4.5rem 0;
+}
+
+.typology-chart-card {
+  margin-top: 2rem;
+  padding: 2.25rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.chart-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.chart-title {
+  font-size: 1.25rem;
+  color: #f8fafc;
+  margin: 0 0 0.35rem 0;
+}
+
+.chart-sub {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.chart-wrapper {
+  width: 100%;
+}
+
+.typology-chart-tooltip {
+  background: #0f172a;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.tooltip-name {
+  font-size: 0.8rem;
+  color: #94a3b8;
+  margin: 0 0 0.2rem 0;
+  font-family: var(--font-mono);
+}
+
+.tooltip-val {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #34d399;
+  margin: 0 0 0.2rem 0;
+}
+
+.tooltip-count {
+  font-size: 0.72rem;
+  color: #64748b;
+}
+
+/* Typology Cards Grid */
+.typology-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2.25rem;
+}
+
+.typology-card {
+  padding: 1.5rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-left: 4px solid #38bdf8;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: transform 0.2s ease;
+}
+
+.typology-card:hover {
+  transform: translateY(-2px);
+  background: rgba(30, 41, 59, 0.6);
+}
+
+.typology-header {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.typology-icon-wrapper {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  border: 1px solid;
+  background: rgba(255, 255, 255, 0.02);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.typology-title {
+  margin: 0 0 0.15rem 0;
+  font-size: 0.95rem;
+  color: #f8fafc;
+}
+
+.typology-recall {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.typology-flow-badge {
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.4rem 0.65rem;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.typology-flow-badge code {
+  color: #cbd5e1;
+  font-size: 0.78rem;
+}
+
+.typology-desc {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  margin: 0;
+}

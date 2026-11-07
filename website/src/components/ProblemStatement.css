@@ -1,0 +1,308 @@
+/* ===== Problem Statement Section ===== */
+.problem-section {
+  background: linear-gradient(180deg, var(--bg-primary) 0%, rgba(15, 23, 42, 0.4) 100%);
+  padding: 4.5rem 0;
+}
+
+.section-badge-wrapper {
+  margin-bottom: 0.75rem;
+}
+
+.badge-amber {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+  font-weight: 600;
+}
+
+.badge-red {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: #f87171;
+  font-weight: 600;
+}
+
+.flow-comparison-container {
+  margin-top: 2.25rem;
+  padding: 2rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.75);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.flow-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  flex-wrap: wrap;
+}
+
+.flow-tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.65rem 1.25rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.flow-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #f8fafc;
+}
+
+.flow-tab-btn.active {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: #38bdf8;
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.tab-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.tab-indicator.red {
+  background: #ef4444;
+  box-shadow: 0 0 6px #ef4444;
+}
+
+.tab-indicator.purple {
+  background: #c084fc;
+  box-shadow: 0 0 6px #c084fc;
+}
+
+.scenario-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.75rem;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.scenario-title {
+  margin: 0 0 0.4rem 0;
+  font-size: 1.2rem;
+  color: #f8fafc;
+}
+
+.scenario-desc {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #94a3b8;
+  line-height: 1.5;
+  max-width: 780px;
+}
+
+/* Flow Diagram Nodes & Edges */
+.flow-diagram-visual {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(10, 15, 29, 0.85);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 1.5rem 1.25rem;
+  overflow-x: auto;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.flow-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: #1e293b;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  padding: 0.65rem 1rem;
+  min-width: 90px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.flow-node.highlight-loop {
+  border-color: #c084fc;
+  background: rgba(168, 85, 247, 0.12);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.2);
+}
+
+.node-id {
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #f1f5f9;
+}
+
+.node-bank {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+.flow-edge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-grow: 1;
+  min-width: 90px;
+  text-align: center;
+}
+
+.edge-amount {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #f8fafc;
+  font-family: var(--font-mono);
+}
+
+.edge-arrow {
+  color: #64748b;
+  font-size: 1.1rem;
+  margin: 0.1rem 0;
+}
+
+.flow-edge.loop-edge .edge-arrow {
+  color: #c084fc;
+}
+
+.flow-edge.return-edge .edge-arrow {
+  color: #f43f5e;
+  font-weight: 700;
+}
+
+.edge-status {
+  font-size: 0.68rem;
+  padding: 0.15rem 0.4rem;
+  border-radius: 4px;
+}
+
+.edge-status.safe {
+  color: #94a3b8;
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.edge-status.purple {
+  color: #c084fc;
+  background: rgba(168, 85, 247, 0.15);
+}
+
+.edge-status.rose {
+  color: #f43f5e;
+  background: rgba(244, 63, 94, 0.15);
+  font-weight: 600;
+}
+
+.scenario-verdict {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  line-height: 1.5;
+}
+
+.scenario-verdict.red {
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #fca5a5;
+}
+
+.scenario-verdict.purple {
+  background: rgba(168, 85, 247, 0.08);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  color: #e9d5ff;
+}
+
+/* Comparison Cards Grid */
+.comparison-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.75rem;
+  margin-top: 2rem;
+}
+
+@media (max-width: 850px) {
+  .comparison-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.comp-card {
+  padding: 2rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.75);
+}
+
+.traditional-card {
+  border: 1px solid rgba(244, 63, 94, 0.25);
+  border-top: 4px solid #f43f5e;
+}
+
+.proposed-card {
+  border: 1px solid rgba(52, 211, 153, 0.25);
+  border-top: 4px solid #10b981;
+}
+
+.comp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.4rem;
+}
+
+.comp-card-header h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  color: #f8fafc;
+}
+
+.comp-card-sub {
+  font-size: 0.78rem;
+  color: #94a3b8;
+  margin: 0 0 1.25rem 0;
+}
+
+.comp-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.comp-list li {
+  font-size: 0.84rem;
+  color: #cbd5e1;
+  line-height: 1.5;
+  position: relative;
+  padding-left: 1.25rem;
+}
+
+.traditional-card .comp-list li::before {
+  content: '✕';
+  position: absolute;
+  left: 0;
+  color: #f43f5e;
+  font-weight: 700;
+  font-size: 0.8rem;
+}
+
+.proposed-card .comp-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: #10b981;
+  font-weight: 700;
+  font-size: 0.85rem;
+}

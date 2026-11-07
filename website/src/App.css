@@ -5,10 +5,10 @@
   left: 0;
   right: 0;
   z-index: 100;
-  padding: 1rem 0;
-  background: rgba(10, 14, 26, 0.8);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  padding: 0.75rem 0;
+  background: rgba(10, 14, 26, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
   border-bottom: 1px solid var(--border-glass);
 }
 
@@ -16,45 +16,61 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 1.5rem;
 }
 
 .nav-logo {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.6rem;
+  text-decoration: none;
   letter-spacing: -0.02em;
+  flex-shrink: 0;
 }
 
 .nav-logo-icon {
-  font-size: 1.3rem;
-  color: var(--accent-blue);
+  color: #38bdf8;
+}
+
+.nav-logo-text {
+  font-weight: 700;
+  font-family: var(--font-heading);
+}
+
+.nav-tag {
+  font-size: 0.68rem;
+  padding: 0.2rem 0.55rem;
+  margin-left: 0.2rem;
 }
 
 .nav-links {
   display: flex;
-  gap: 2rem;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
 }
 
 .nav-links a {
-  font-size: 0.85rem;
+  font-size: 0.84rem;
   font-weight: 500;
   color: var(--text-secondary);
   text-decoration: none;
   transition: color var(--transition-fast);
   position: relative;
+  padding: 0.2rem 0;
 }
 
 .nav-links a::after {
   content: '';
   position: absolute;
-  bottom: -4px;
+  bottom: -2px;
   left: 0;
   width: 0;
   height: 2px;
-  background: var(--accent-blue);
+  background: #38bdf8;
   transition: width var(--transition-smooth);
 }
 
@@ -66,38 +82,115 @@
   width: 100%;
 }
 
-/* ===== Footer ===== */
-.footer {
-  padding: 3rem 2rem;
-  text-align: center;
-  border-top: 1px solid var(--border-glass);
+.nav-link-highlight {
+  color: #38bdf8 !important;
+  font-weight: 600 !important;
 }
 
-.footer-text {
-  font-size: 0.9rem;
-  font-weight: 500;
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-shrink: 0;
+}
+
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-family: inherit;
+}
+
+.nav-btn-glossary {
+  background: rgba(30, 41, 59, 0.7);
+  border: 1px solid var(--border-color);
   color: var(--text-secondary);
 }
 
-.footer-sub {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  margin-top: 0.5rem;
-  font-family: var(--font-mono);
+.nav-btn-glossary:hover {
+  background: rgba(51, 65, 85, 0.85);
+  color: var(--text-primary);
+  border-color: rgba(255, 255, 255, 0.2);
 }
 
-/* ===== App ===== */
+.nav-btn-tour {
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid rgba(168, 85, 247, 0.4);
+  color: #c084fc;
+}
+
+.nav-btn-tour:hover {
+  background: rgba(168, 85, 247, 0.25);
+  border-color: rgba(168, 85, 247, 0.6);
+  transform: translateY(-1px);
+}
+
+/* ===== Footer ===== */
+.footer {
+  padding: 3.5rem 2rem;
+  border-top: 1px solid var(--border-glass);
+  background: rgba(10, 14, 26, 0.95);
+}
+
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  flex-wrap: wrap;
+}
+
+.footer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.footer-sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.footer-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+/* ===== App Global Spacing ===== */
 .app {
   min-height: 100vh;
+  position: relative;
+}
+
+.section-divider {
+  border: none;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.2), rgba(168, 85, 247, 0.2), transparent);
+  margin: 0;
 }
 
 /* Responsive */
-@media (max-width: 768px) {
+@media (max-width: 1100px) {
   .nav-links {
-    gap: 1rem;
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .footer-content {
+    flex-direction: column;
+    text-align: center;
   }
 
-  .nav-links a {
-    font-size: 0.8rem;
+  .nav-actions {
+    display: none;
   }
 }

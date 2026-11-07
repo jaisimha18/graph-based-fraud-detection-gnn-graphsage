@@ -99,3 +99,25 @@ def test_predict_endpoint_valid_mini_data(client, monkeypatch):
     assert "threshold" in data
     assert len(data["nodes"]) == 3
     assert len(data["links"]) == 3
+
+def test_samples_endpoints(client):
+    """Verify sample scenarios listing, download, and execution endpoints."""
+    # List samples
+    resp = client.get("/api/samples")
+    assert resp.status_code == 200
+    samples = resp.json().get("samples", [])
+    assert len(samples) >= 1
+    sample_id = samples[0]["id"]
+
+    # Download sample
+    dl_resp = client.get(f"/api/sample/{sample_id}/download")
+    assert dl_resp.status_code == 200
+    assert "Timestamp" in dl_resp.text
+
+    # Predict sample
+    pred_resp = client.post(f"/api/predict_sample/{sample_id}")
+    assert pred_resp.status_code == 200
+    pred_data = pred_resp.json()
+    assert "nodes" in pred_data
+    assert "links" in pred_data
+    assert "cycleAnalysis" in pred_data

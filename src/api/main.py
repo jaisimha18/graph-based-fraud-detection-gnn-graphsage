@@ -76,19 +76,53 @@ elif os.path.exists(baseline_model_path):
         with open(rep_path, "r") as f:
             best_thresh = json.load(f).get("best_threshold", 0.95)
 
+SAMPLES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "samples"))
+
+AVAILABLE_SAMPLES = [
+    {
+        "id": "sample_test_cycle_ring.csv",
+        "name": "4-Hop Circular Laundering Ring",
+        "description": "A closed round-tripping scheme (A ➔ B ➔ C ➔ D ➔ A) across 4 banks with $894K circulated volume.",
+        "tag": "Closed Laundering Ring",
+        "badgeColor": "purple",
+        "rows": 4,
+        "isCycle": True
+    },
+    {
+        "id": "sample_trans.csv",
+        "name": "Multi-Bank Transaction Stream",
+        "description": "167 real-world streaming transfers across dozens of commercial banks with normal and anomalous flows.",
+        "tag": "Multi-Bank Stream",
+        "badgeColor": "blue",
+        "rows": 167,
+        "isCycle": False
+    },
+    {
+        "id": "sample_trans_4_with_fraud.csv",
+        "name": "Structuring & Layering Scheme",
+        "description": "Structured fragmentation and rapid smurfing transfers designed to evade static reporting thresholds.",
+        "tag": "Smurfing & Structuring",
+        "badgeColor": "rose",
+        "rows": 540,
+        "isCycle": False
+    },
+    {
+        "id": "sample_trans_5_subgraph.csv",
+        "name": "Dense Interconnected Subgraph",
+        "description": "115 transactions forming a connected multi-account cluster suitable for deep structural analysis.",
+        "tag": "Dense Subgraph",
+        "badgeColor": "emerald",
+        "rows": 115,
+        "isCycle": False
+    }
+]
+
 # Helper for cyclic encoding
 def cyclical(series: pd.Series, period: int):
     rad = 2 * np.pi * series / period
     return np.sin(rad).astype(np.float32), np.cos(rad).astype(np.float32)
 
-@app.post("/api/predict")
-async def predict_transactions(file: UploadFile = File(...)):
-    contents = await file.read()
-    try:
-        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
-    except Exception as e:
-        return {"error": f"Failed to parse CSV file: {str(e)}"}
-    
+def run_model_inference_on_df(df: pd.DataFrame):
     # Check if necessary columns exist
     required = ["Timestamp", "From Bank", "Account", "To Bank", "Account.1", 
                 "Amount Received", "Amount Paid", "Receiving Currency", "Payment Currency", "Payment Format"]
@@ -301,6 +335,43 @@ async def predict_transactions(file: UploadFile = File(...)):
             "detectedRings": detected_rings
         }
     }
+
+@app.post("/api/predict")
+async def predict_transactions(file: UploadFile = File(...)):
+    contents = await file.read()
+    try:
+        df = pd.read_csv(io.StringIO(contents.decode('utf-8')))
+    except Exception as e:
+        return {"error": f"Failed to parse CSV file: {str(e)}"}
+    
+    return run_model_inference_on_df(df)
+
+@app.get("/api/samples")
+def get_samples_list():
+    return {"samples": AVAILABLE_SAMPLES}
+
+@app.get("/api/sample/{sample_id}/download")
+def download_sample_file(sample_id: str):
+    from fastapi.responses import FileResponse
+    clean_name = os.path.basename(sample_id)
+    file_path = os.path.join(SAMPLES_DIR, clean_name)
+    if not os.path.exists(file_path):
+        return {"error": "Sample file not found"}
+    return FileResponse(file_path, media_type="text/csv", filename=clean_name)
+
+@app.post("/api/predict_sample/{sample_id}")
+def predict_sample(sample_id: str):
+    clean_name = os.path.basename(sample_id)
+    file_path = os.path.join(SAMPLES_DIR, clean_name)
+    if not os.path.exists(file_path):
+        return {"error": f"Sample file {clean_name} not found"}
+    try:
+        df = pd.read_csv(file_path)
+    except Exception as e:
+        return {"error": f"Failed to read sample file: {str(e)}"}
+    res = run_model_inference_on_df(df)
+    res["sampleLoaded"] = clean_name
+    return res
 
 @app.get("/api/ablation")
 def get_ablation_results():

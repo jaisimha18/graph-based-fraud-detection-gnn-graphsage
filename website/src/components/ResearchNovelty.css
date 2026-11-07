@@ -1,0 +1,280 @@
+/* ===== Research Novelty Section ===== */
+.novelty-section {
+  background: linear-gradient(180deg, rgba(30, 27, 75, 0.25) 0%, rgba(15, 23, 42, 0.4) 100%);
+  padding: 4.5rem 0;
+}
+
+.ablation-benchmark-card {
+  margin-top: 2rem;
+  padding: 2rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.benchmark-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.benchmark-title {
+  font-size: 1.25rem;
+  color: #f8fafc;
+  margin: 0 0 0.35rem 0;
+}
+
+.benchmark-desc {
+  font-size: 0.86rem;
+  color: #94a3b8;
+  margin: 0;
+}
+
+.ablation-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.86rem;
+}
+
+.ablation-data-table th {
+  padding: 0.85rem 1rem;
+  background: rgba(30, 41, 59, 0.6);
+  color: #cbd5e1;
+  font-weight: 600;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ablation-data-table td {
+  padding: 1rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+  color: #e2e8f0;
+}
+
+.ablation-data-table .winner-row {
+  background: rgba(16, 185, 129, 0.06);
+  border-left: 3px solid #10b981;
+}
+
+.ablation-data-table .failure-row {
+  background: rgba(245, 158, 11, 0.05);
+  border-left: 3px solid #f59e0b;
+}
+
+.metric-pr-auc {
+  font-weight: 700;
+  color: #38bdf8 !important;
+}
+
+.winner-row .metric-pr-auc {
+  color: #34d399 !important;
+}
+
+.metric-ring {
+  font-weight: 700;
+  color: #c084fc !important;
+}
+
+/* Mechanism Tabs & Display */
+.mechanism-comparison-wrapper {
+  margin-top: 2.5rem;
+}
+
+.mechanism-nav-tabs {
+  display: flex;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+}
+
+.mech-tab {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 8px;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #94a3b8;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mech-tab:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #f8fafc;
+}
+
+.mech-tab.active {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #c084fc;
+  color: #ffffff;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.2);
+}
+
+.mechanism-display-card {
+  padding: 2.25rem;
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.mech-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.mech-title {
+  font-size: 1.2rem;
+  color: #f8fafc;
+  margin: 0;
+}
+
+.mech-visual-diagram {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.mech-diagram-box {
+  background: rgba(10, 15, 29, 0.8);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 10px;
+  padding: 1.25rem;
+}
+
+.diagram-box-title {
+  display: block;
+  font-size: 0.8rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 0.75rem;
+}
+
+.diagram-stream {
+  display: flex;
+  align-items: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.transfer-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  font-size: 0.85rem;
+}
+
+.transfer-item.fraud {
+  background: rgba(244, 63, 94, 0.12);
+  border: 1px solid rgba(244, 63, 94, 0.3);
+  color: #fca5a5;
+}
+
+.transfer-item.legit {
+  background: rgba(148, 163, 184, 0.08);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: #cbd5e1;
+}
+
+.transfer-item.attention-high {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  color: #a7f3d0;
+}
+
+.transfer-item.attention-low {
+  background: rgba(148, 163, 184, 0.05);
+  border: 1px dashed rgba(148, 163, 184, 0.2);
+  color: #64748b;
+}
+
+.plus-sign {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.arrow-down-divider {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  color: #94a3b8;
+  font-size: 0.8rem;
+  padding: 0.25rem 0;
+}
+
+.mech-diagram-result {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.25rem;
+  border-radius: 10px;
+}
+
+.mech-diagram-result.failure {
+  background: rgba(245, 158, 11, 0.08);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  color: #fde68a;
+}
+
+.mech-diagram-result.success {
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  color: #a7f3d0;
+}
+
+.mech-diagram-result strong {
+  display: block;
+  font-size: 0.95rem;
+  margin-bottom: 0.35rem;
+}
+
+.mech-diagram-result p {
+  font-size: 0.84rem;
+  line-height: 1.55;
+  margin: 0;
+  color: #cbd5e1;
+}
+
+/* 1-WL Theory Box */
+.wl-theory-box {
+  margin-top: 1.75rem;
+  padding: 1.5rem;
+  border-radius: 10px;
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(168, 85, 247, 0.2);
+}
+
+.wl-header {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.wl-header h4 {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #f8fafc;
+}
+
+.wl-body {
+  font-size: 0.84rem;
+  color: #94a3b8;
+  line-height: 1.6;
+  margin: 0;
+}
