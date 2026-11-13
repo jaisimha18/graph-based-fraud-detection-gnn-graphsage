@@ -82,10 +82,10 @@ AVAILABLE_SAMPLES = [
     {
         "id": "sample_transactions.csv",
         "name": "Multi-Bank AML Investigation Stream",
-        "description": "42 authentic cross-bank transactions embedding two closed circular money-laundering rings (3-hop & 4-hop, $998K volume) and 35 legitimate transfers.",
-        "tag": "Verified Multi-Ring Benchmark",
+        "description": "45 authentic cross-bank transactions embedding two flagged circular laundering rings (3-hop & 4-hop, $998K volume) and one legitimate unflagged commercial loop ($3.7K), plus 35 normal transfers.",
+        "tag": "Verified Benchmark (Flagged & Unflagged)",
         "badgeColor": "purple",
-        "rows": 42,
+        "rows": 45,
         "isCycle": True
     }
 ]
