@@ -80,40 +80,13 @@ SAMPLES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."
 
 AVAILABLE_SAMPLES = [
     {
-        "id": "sample_test_cycle_ring.csv",
-        "name": "4-Hop Circular Laundering Ring",
-        "description": "A closed round-tripping scheme (A ➔ B ➔ C ➔ D ➔ A) across 4 banks with $894K circulated volume.",
-        "tag": "Closed Laundering Ring",
+        "id": "sample_transactions.csv",
+        "name": "Multi-Bank AML Investigation Stream",
+        "description": "42 authentic cross-bank transactions embedding two closed circular money-laundering rings (3-hop & 4-hop, $998K volume) and 35 legitimate transfers.",
+        "tag": "Verified Multi-Ring Benchmark",
         "badgeColor": "purple",
-        "rows": 4,
+        "rows": 42,
         "isCycle": True
-    },
-    {
-        "id": "sample_trans.csv",
-        "name": "Multi-Bank Transaction Stream",
-        "description": "167 real-world streaming transfers across dozens of commercial banks with normal and anomalous flows.",
-        "tag": "Multi-Bank Stream",
-        "badgeColor": "blue",
-        "rows": 167,
-        "isCycle": False
-    },
-    {
-        "id": "sample_trans_4_with_fraud.csv",
-        "name": "Structuring & Layering Scheme",
-        "description": "Structured fragmentation and rapid smurfing transfers designed to evade static reporting thresholds.",
-        "tag": "Smurfing & Structuring",
-        "badgeColor": "rose",
-        "rows": 540,
-        "isCycle": False
-    },
-    {
-        "id": "sample_trans_5_subgraph.csv",
-        "name": "Dense Interconnected Subgraph",
-        "description": "115 transactions forming a connected multi-account cluster suitable for deep structural analysis.",
-        "tag": "Dense Subgraph",
-        "badgeColor": "emerald",
-        "rows": 115,
-        "isCycle": False
     }
 ]
 
@@ -123,18 +96,77 @@ def cyclical(series: pd.Series, period: int):
     return np.sin(rad).astype(np.float32), np.cos(rad).astype(np.float32)
 
 def run_model_inference_on_df(df: pd.DataFrame):
-    # Check if necessary columns exist
-    required = ["Timestamp", "From Bank", "Account", "To Bank", "Account.1", 
-                "Amount Received", "Amount Paid", "Receiving Currency", "Payment Currency", "Payment Format"]
+    df = df.copy().reset_index(drop=True)
+
+    # 1. Flexible column normalization & intelligent header mapping
+    # Strip whitespace from column names
+    df.rename(columns={c: str(c).strip() for c in df.columns}, inplace=True)
     
+    # Drop unnamed index columns if present
+    drop_unnamed = [c for c in df.columns if str(c).lower().startswith("unnamed")]
+    if drop_unnamed:
+        df.drop(columns=drop_unnamed, inplace=True)
+
+    rename_dict = {}
+    for col in df.columns:
+        cl = str(col).lower().replace("_", " ").strip()
+        if cl in ["from account", "source account", "source_account", "src account", "origin account", "sender"]:
+            rename_dict[col] = "Account"
+        elif cl in ["to account", "destination account", "target account", "dest account", "dst account", "account 1", "account.1", "receiver"]:
+            rename_dict[col] = "Account.1"
+        elif cl in ["from bank", "source bank", "src bank", "origin bank"]:
+            rename_dict[col] = "From Bank"
+        elif cl in ["to bank", "target bank", "dest bank", "destination bank"]:
+            rename_dict[col] = "To Bank"
+        elif cl in ["amount paid", "amount_paid", "paid amount"]:
+            rename_dict[col] = "Amount Paid"
+        elif cl in ["amount received", "amount_received", "received amount"]:
+            rename_dict[col] = "Amount Received"
+        elif cl in ["amount", "txn amount", "transaction amount"]:
+            if "Amount Paid" not in df.columns and "Amount Paid" not in rename_dict.values():
+                rename_dict[col] = "Amount Paid"
+        elif cl in ["currency", "curr"]:
+            if "Payment Currency" not in df.columns and "Payment Currency" not in rename_dict.values():
+                rename_dict[col] = "Payment Currency"
+        elif cl in ["payment format", "format", "payment type", "txn type"]:
+            rename_dict[col] = "Payment Format"
+        elif cl in ["is laundering", "is fraud", "label", "fraud", "is_laundering", "is_fraud"]:
+            rename_dict[col] = "Is Laundering"
+    df.rename(columns=rename_dict, inplace=True)
+
+    # If 'Account' appears duplicate times and 'Account.1' not present:
+    if "Account.1" not in df.columns and list(df.columns).count("Account") >= 2:
+        cols = list(df.columns)
+        first_acc = cols.index("Account")
+        second_acc = cols.index("Account", first_acc + 1)
+        cols[second_acc] = "Account.1"
+        df.columns = cols
+
+    # Verify minimum required columns
+    required = ["Account", "Account.1", "Amount Paid"]
     if not all(col in df.columns for col in required):
-        return {"error": "Missing required columns in CSV."}
-        
+        return {"error": f"Missing required columns in CSV: {set(required) - set(df.columns)}. Supported columns include 'Account', 'Account.1' (or 'From Account', 'To Account'), and 'Amount Paid'."}
+
     if not model:
         return {"error": "Model not loaded. Please train the model first."}
-        
+
+    # Clean amount columns from string formatting ($ or commas)
+    def clean_amount(val):
+        if pd.isna(val):
+            return 0.0
+        if isinstance(val, (int, float)):
+            return float(val)
+        val_str = str(val).replace(",", "").replace("$", "").strip()
+        try:
+            return float(val_str)
+        except:
+            return 0.0
+
+    df["Amount Paid"] = df["Amount Paid"].apply(clean_amount)
+    df["Amount Received"] = df["Amount Received"].apply(clean_amount)
+
     # Build unique nodes
-    accounts = pd.concat([df["Account"], df["Account.1"]]).unique()
+    accounts = pd.concat([df["Account"].astype(str), df["Account.1"].astype(str)]).unique()
     account_to_idx = {acc: i for i, acc in enumerate(accounts)}
     idx_to_account = {i: acc for acc, i in account_to_idx.items()}
     
@@ -145,19 +177,23 @@ def run_model_inference_on_df(df: pd.DataFrame):
     acc_feat_path = os.path.join(PREPROCESSED_DIR, "account_features.csv")
     if os.path.exists(acc_feat_path):
         acc_df = pd.read_csv(acc_feat_path)
-        # map account_id to row
         acc_df.set_index("account_id", inplace=True)
         for i, acc in enumerate(accounts):
             if acc in acc_df.index:
-                node_features[i] = acc_df.loc[acc].values[:ACCOUNT_FEAT_DIM]
+                row_val = acc_df.loc[acc]
+                if isinstance(row_val, pd.DataFrame):
+                    row_val = row_val.iloc[0]
+                node_features[i] = row_val.values[:ACCOUNT_FEAT_DIM]
                 
     # Build edge index
     edge_index_np = np.zeros((2, len(df)), dtype=np.int64)
-    edge_index_np[0] = df["Account"].map(account_to_idx).values
-    edge_index_np[1] = df["Account.1"].map(account_to_idx).values
+    edge_index_np[0] = df["Account"].astype(str).map(account_to_idx).values
+    edge_index_np[1] = df["Account.1"].astype(str).map(account_to_idx).values
     
     # Build edge features
-    dt = pd.to_datetime(df["Timestamp"], format="%Y/%m/%d %H:%M")
+    dt = pd.to_datetime(df["Timestamp"], errors="coerce")
+    if dt.isna().any():
+        dt = dt.fillna(pd.to_datetime("2022/09/10 12:00"))
     df["hour"] = dt.dt.hour
     df["dow"] = dt.dt.dayofweek
     
@@ -166,8 +202,8 @@ def run_model_inference_on_df(df: pd.DataFrame):
     amount_diff_log = (amount_received_log - amount_paid_log).astype(np.float32)
     
     is_cross_bank = (df["From Bank"].astype(str) != df["To Bank"].astype(str)).astype(np.float32)
-    is_self_transfer = (df["Account"] == df["Account.1"]).astype(np.float32)
-    is_cross_currency = (df["Receiving Currency"] != df["Payment Currency"]).astype(np.float32)
+    is_self_transfer = (df["Account"].astype(str) == df["Account.1"].astype(str)).astype(np.float32)
+    is_cross_currency = (df["Receiving Currency"].astype(str) != df["Payment Currency"].astype(str)).astype(np.float32)
     
     # Exact categorical mapping matching training preprocessing
     currencies = ['Australian Dollar', 'Bitcoin', 'Brazil Real', 'Canadian Dollar', 'Euro', 'Mexican Peso', 'Ruble', 'Rupee', 'Saudi Riyal', 'Shekel', 'Swiss Franc', 'UK Pound', 'US Dollar', 'Yen', 'Yuan']
@@ -176,7 +212,7 @@ def run_model_inference_on_df(df: pd.DataFrame):
     fmt_dict = {f: i for i, f in enumerate(formats)}
     
     rec_curr_enc = df["Receiving Currency"].fillna("US Dollar").map(lambda x: curr_dict.get(x, 12)).astype(np.float32)
-    fmt_enc = df["Payment Format"].fillna("Cheque").map(lambda x: fmt_dict.get(x, 3)).astype(np.float32)
+    fmt_enc = df["Payment Format"].fillna("ACH").map(lambda x: fmt_dict.get(x, 0)).astype(np.float32)
     
     hour_sin, hour_cos = cyclical(df["hour"], 24)
     dow_sin, dow_cos = cyclical(df["dow"], 7)
@@ -266,7 +302,7 @@ def run_model_inference_on_df(df: pd.DataFrame):
     
     # Links: {source: account, target: account, prediction: float, isFraud: bool, inCycle: bool, ...}
     links_out = []
-    for i, row in df.iterrows():
+    for i, (_, row) in enumerate(df.iterrows()):
         source = str(row["Account"])
         target = str(row["Account.1"])
         pred_score = float(preds[i])
@@ -326,6 +362,7 @@ def run_model_inference_on_df(df: pd.DataFrame):
         "nodes": nodes_out,
         "links": links_out,
         "threshold": float(best_thresh),
+        "recommendedThreshold": 0.85,
         "actualFraudCount": actual_fraud,
         "modelUsed": "cycle_attn" if is_cycle_model else "baseline",
         "cycleAnalysis": {
