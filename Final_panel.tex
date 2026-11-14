@@ -80,13 +80,13 @@
 \end{frame}
 
 % =========================================================================
-% SLIDE 2: GUIDE APPROVAL EMAIL CONFIRMATION (Mandatory - Left Blank for User Screenshot)
+% SLIDE 2: GUIDE APPROVAL EMAIL CONFIRMATION (Blank for Screenshot)
 % =========================================================================
 \begin{frame}{Panel Review Approval}
     \framesubtitle{Confirmation of Project Review and Approval from Guide}
     \centering
     \vspace{1.0cm}
-    % Leave blank for user screenshot insertion
+    % Blank area for user screenshot insertion
     \fbox{\begin{minipage}[c][5.0cm]{0.92\textwidth}
         \centering
         \vspace{2.0cm}
@@ -101,20 +101,20 @@
 
 % --- SLIDE 3: PROBLEM STATEMENT & RESEARCH GAP REFINEMENT ---
 \begin{frame}{1. Problem Statement \& Research Gap Refinement}
-    \framesubtitle{Why Traditional Fraud Detection Fails on Coordinated Circular Money Laundering}
+    \framesubtitle{Why Traditional Fraud Detection Fails on Circular Money Laundering}
     \begin{block}{Refined Problem Statement}
         \footnotesize
-        Detecting coordinated, multi-party money laundering in high-velocity banking networks, where criminal rings disguise illicit flows using circular routing ($A \to B \to C \to D \to A$) and smurfing dispersion across accounts.
+        Detecting coordinated money laundering in banking transaction networks, where fraudsters route money through multiple accounts in circular loops ($A \to B \to C \to D \to A$) or split transactions (smurfing) to evade detection.
     \end{block}
 
     \begin{columns}[T]
         \column{0.48\textwidth}
-        \begin{block}{Research Gap Addressed}
+        \begin{block}{Research Gap in Existing Methods}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
-                \item \textbf{Tabular ML Limitation:} Evaluates transactions in isolation (i.i.d.), completely blind to network topology.
-                \item \textbf{The 1-WL Expressiveness Bound:} Standard GNNs (GCN, GraphSAGE) cannot distinguish directed cycles from tree unfoldings ($\text{MPNN}(C_6) \equiv \text{MPNN}(2 \times C_3)$).
-                \item \textbf{The "Dilution Trap":} Mean neighborhood aggregation averages out sparse cyclic anomalies across high-volume normal banking flows.
+                \item \textbf{Tabular ML Limitation:} Evaluates each transaction one-by-one; completely misses the network connections between accounts.
+                \item \textbf{Standard GNN Limitation:} Standard GraphSAGE cannot distinguish circular loops from normal branching transfers.
+                \item \textbf{Signal Dilution Problem:} Mean aggregation treats every neighbor equally. The few suspicious circular transactions get mixed with thousands of normal transactions, losing the fraud signal.
             \end{itemize}
         \end{block}
 
@@ -122,10 +122,10 @@
         \begin{block}{Our Proposed Objectives}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
-                \item \textbf{Graph-Native Modeling:} Model banking entities as accounts (nodes) and transfers (directed edges).
-                \item \textbf{Random Walk Cycles:} Compute multi-step return probabilities ($P^2 \dots P^5$) to expose circular paths.
-                \item \textbf{Structural Attention:} Modulate aggregation with learned attention $\alpha_{ji}$ to prioritize cycle edges.
-                \item \textbf{Leakage-Free Induction:} Strict chronological split evaluating streaming unseen accounts.
+                \item \textbf{Graph Representation:} Model accounts as nodes and money transfers as directed edges.
+                \item \textbf{Random Walk Cycle Features:} Compute return probabilities ($P^2 \dots P^5$) to expose circular paths.
+                \item \textbf{Cycle-Aware Attention Layer:} Assign higher importance weights ($\alpha_{ji}$) to transactions forming circular loops.
+                \item \textbf{Strict Chronological Split:} Test strictly on future, unseen accounts to reflect real-world streaming data.
             \end{itemize}
         \end{block}
     \end{columns}
@@ -133,7 +133,7 @@
 
 % --- SLIDE 4: PROPOSED METHODOLOGY & WORKFLOW ---
 \begin{frame}{2. Proposed Methodology \& Solution Design}
-    \framesubtitle{End-to-End Pipeline from Raw Transaction Stream to Forensic Ring Detection}
+    \framesubtitle{End-to-End Pipeline from Raw Transaction Stream to Fraud Ring Detection}
     \centering
     \begin{tikzpicture}[scale=0.88, every node/.style={transform shape}]
         \tikzstyle{stageBox} = [draw=amritaMaroon, fill=cardBg, rounded corners=3pt, minimum width=2.4cm, minimum height=1.1cm, text width=2.2cm, align=center, font=\scriptsize, line width=0.8pt]
@@ -141,9 +141,9 @@
 
         \node[stageBox] (s1) at (0, 1.8) {\textbf{Stage 1: Ingestion}\\[2pt] IBM AML \texttt{HI-Small}\\5.18M Txs, 518K Accts\\Days 1--8 / 9 / 10--18};
         \node[stageBox] (s2) at (3.3, 1.8) {\textbf{Stage 2: Graph Builder}\\[2pt] Directed Multigraph\\8-dim Node Features\\14-dim Edge Features};
-        \node[stageBox] (s3) at (6.6, 1.8) {\textbf{Stage 3: RW Cycles}\\[2pt] $P = D_{\text{out}}^{-1} A$\\Return Prob ($P^2 \dots P^5$)\\Edges: 14 $\to$ 22 dims};
-        \node[stageBox] (s4) at (9.9, 1.8) {\textbf{Stage 4: Attention SAGE}\\[2pt] \texttt{CycleAwareSAGEConv}\\Structural Attention $\alpha_{ji}$\\Skip-Connections};
-        \node[stageBox] (s5) at (13.2, 1.8) {\textbf{Stage 5: Forensics}\\[2pt] Edge Risk $P(\text{fraud})$\\Closed Ring Extraction\\React 19 Dashboard};
+        \node[stageBox] (s3) at (6.6, 1.8) {\textbf{Stage 3: Cycle Features}\\[2pt] $P = D_{\text{out}}^{-1} A$\\Return Prob ($P^2 \dots P^5$)\\Edges: 14 $\to$ 22 dims};
+        \node[stageBox] (s4) at (9.9, 1.8) {\textbf{Stage 4: Attention SAGE}\\[2pt] \texttt{CycleAwareSAGEConv}\\Cycle Attention $\alpha_{ji}$\\Skip-Connections};
+        \node[stageBox] (s5) at (13.2, 1.8) {\textbf{Stage 5: Ring Detection}\\[2pt] Fraud Probability\\Closed Ring Extraction\\Web Dashboard};
 
         \draw[arrow] (s1) -- (s2);
         \draw[arrow] (s2) -- (s3);
@@ -151,36 +151,36 @@
         \draw[arrow] (s4) -- (s5);
 
         \node[draw=slateGrey, fill=white, rounded corners=2pt, font=\tiny, text width=2.3cm, align=left, inner sep=3pt] at (0, -0.4) {
-            $\bullet$ Strict temporal ordering\\
-            $\bullet$ Zero future leakage\\
-            $\bullet$ Evaluates unseen nodes
+            $\bullet$ Strict time order\\
+            $\bullet$ No future leakage\\
+            $\bullet$ Unseen test accounts
         };
         \node[draw=slateGrey, fill=white, rounded corners=2pt, font=\tiny, text width=2.3cm, align=left, inner sep=3pt] at (3.3, -0.4) {
             $\bullet$ PyTorch Geometric\\
             $\bullet$ Accounts = Nodes\\
-            $\bullet$ Transactions = Edges
+            $\bullet$ Transfers = Edges
         };
         \node[draw=cyclePurple, fill=white, rounded corners=2pt, font=\tiny, text width=2.3cm, align=left, inner sep=3pt] at (6.6, -0.4) {
-            $\bullet$ Detects loop structure\\
-            $\bullet$ Overcomes 1-WL bound\\
+            $\bullet$ Finds circular paths\\
+            $\bullet$ Measures return prob\\
             $\bullet$ Fast matrix powers
         };
         \node[draw=amritaMaroon, fill=white, rounded corners=2pt, font=\tiny, text width=2.3cm, align=left, inner sep=3pt] at (9.9, -0.4) {
-            $\bullet$ Solves Dilution Trap\\
-            $\bullet$ Weights loop paths\\
+            $\bullet$ Fixes signal dilution\\
+            $\bullet$ Weights cycle edges\\
             $\bullet$ PR-AUC: 0.32 $\to$ 0.57
         };
         \node[draw=safeGreen, fill=white, rounded corners=2pt, font=\tiny, text width=2.3cm, align=left, inner sep=3pt] at (13.2, -0.4) {
             $\bullet$ Full Ring Recall: 85.2\%\\
-            $\bullet$ Dynamic risk slider\\
-            $\bullet$ Sub-5ms batch latency
+            $\bullet$ Threshold slider\\
+            $\bullet$ Sub-5ms batch speed
         };
     \end{tikzpicture}
     \vspace{0.15cm}
 
     \begin{block}{Workflow Walkthrough}
         \footnotesize
-        Raw transactions are chronologically streamed. Accounts become nodes, payments become directed edges. The Random Walk engine computes loop return probabilities ($P^2 \dots P^5$), augmenting edges to 22 dimensions. The \texttt{CycleAwareSAGEConv} layer modulates message passing via attention $\alpha_{ji}$, highlighting detected laundering rings on the forensics dashboard.
+        Raw transactions are loaded chronologically. Bank accounts become nodes and transactions become directed edges. The Random Walk component calculates return probabilities ($P^2 \dots P^5$), adding cycle features to edges. The Cycle-Aware Attention layer focuses message passing onto circular paths, identifying complete money laundering rings on the web dashboard.
     \end{block}
 \end{frame}
 
@@ -192,14 +192,14 @@
         \begin{block}{1. Strict Chronological Splitting}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
-                \item \textbf{The Time-Machine Flaw:} Standard random 80/20 splits allow models to train on future transactions to predict the past, artificially inflating test scores.
+                \item \textbf{The Time-Machine Flaw:} Standard random 80/20 splitting lets models train on future data to predict past transactions, artificially inflating accuracy scores.
                 \item \textbf{Our Chronological Setup:}
                 \begin{itemize}\footnotesize
                     \item \textbf{Train Window:} Days 1--8 (historical graph)
                     \item \textbf{Validation Window:} Day 9 (tuning)
                     \item \textbf{Test Window:} Days 10--18 (future unseen)
                 \end{itemize}
-                \item Tests true \textbf{inductive streaming}: evaluates previously unseen accounts and future fraud rings with zero temporal leakage.
+                \item Evaluates prediction on strictly unseen future accounts, matching how real banking systems operate.
             \end{itemize}
         \end{block}
 
@@ -207,16 +207,16 @@
         \begin{block}{2. PR-AUC over ROC-AUC}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
-                \item Under extreme class imbalance (fraud $<0.1\%$), ROC-AUC can look misleadingly high ($>98\%$) because true negatives dominate the denominator.
-                \item \textbf{PR-AUC} focuses strictly on the minority positive class, providing a rigorous, honest metric.
+                \item In fraud datasets, fraud is $<0.1\%$. Standard ROC-AUC looks high ($>98\%$) simply because normal transactions dominate.
+                \item \textbf{PR-AUC} focuses on the minority fraud class, giving a much more realistic evaluation.
             \end{itemize}
         \end{block}
 
         \begin{block}{3. Pattern-Level Recall (Whole Ring)}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
-                \item Flagging one isolated edge in a 4-hop ring is insufficient in real AML operations.
-                \item We measure \textbf{Full Ring Recall}: whether the model captures all edges in the coordinated cycle.
+                \item Catching just one transfer in a 4-hop laundering ring is not enough.
+                \item We measure \textbf{Complete Ring Recall}: whether the model successfully catches the entire circular ring.
             \end{itemize}
         \end{block}
     \end{columns}
@@ -238,13 +238,13 @@
             \toprule
             \textbf{Pipeline Module / Stage} & \textbf{Implemented Technical Functionality} & \textbf{Status} \\
             \midrule
-            \textbf{1. Data Pipeline \& Split} & Ingestion, chronological split (Days 1--8 / 9 / 10--18), 8-dim node, 14-dim edge encoding & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
-            \textbf{2. Baseline GraphSAGE} & 2-hop Vanilla GraphSAGE with uniform sampling $[S_1=15, S_2=10]$ & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
-            \textbf{3. RW Cycle Extractor} & Matrix power random walk solver ($P^2 \dots P^5$), edge feature expansion to 22-dim & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
-            \textbf{4. Cycle Attention Layer} & Custom \texttt{CycleAwareSAGEConv} PyG layer with structural attention \& skip connections & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
-            \textbf{5. Production Backend} & FastAPI REST API with streaming inference, dynamic thresholding, sample endpoints & \textbf{\textcolor{safeGreen}{100\% (Functional)}} \\
-            \textbf{6. Forensics Web Platform} & React 19 + Vite dashboard, \texttt{react-force-graph-2d}, live ring visualizer, presets & \textbf{\textcolor{safeGreen}{100\% (Functional)}} \\
-            \textbf{7. Automated Test Suite} & 19/19 passing PyTest test cases covering loaders, cycle extractor, models, and API & \textbf{\textcolor{safeGreen}{100\% (Verified)}} \\
+            \textbf{1. Data Ingestion \& Split} & Preprocessing, chronological split (Days 1--8 / 9 / 10--18), 8 node \& 14 edge features & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
+            \textbf{2. Baseline GraphSAGE} & 2-hop GraphSAGE model with neighbor sampling $[S_1=15, S_2=10]$ & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
+            \textbf{3. Cycle Feature Extractor} & Matrix power random walk solver ($P^2 \dots P^5$), expands edge features to 22 dimensions & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
+            \textbf{4. Cycle Attention Layer} & Custom \texttt{CycleAwareSAGEConv} PyG layer with structural attention weights & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
+            \textbf{5. Backend API} & FastAPI REST backend for streaming inference, threshold adjustments, and sample data & \textbf{\textcolor{safeGreen}{100\% (Functional)}} \\
+            \textbf{6. Interactive Web Dashboard} & React 19 + Vite dashboard, interactive graph view, cycle detection, CSV upload & \textbf{\textcolor{safeGreen}{100\% (Functional)}} \\
+            \textbf{7. Automated Test Suite} & 19/19 passing PyTest test cases covering data loading, cycle extraction, models, and API & \textbf{\textcolor{safeGreen}{100\% (Verified)}} \\
             \bottomrule
         \end{tabularx}
     \end{table}
@@ -253,7 +253,7 @@
         \footnotesize
         \begin{itemize}\setlength{\itemsep}{1.5pt}
             \item \textbf{Software Stack:} Python 3.14, PyTorch 2.x, PyTorch Geometric (PyG), NetworkX, FastAPI, React 19, Vite, Tailwind CSS.
-            \item \textbf{Repository \& Verification:} Git repository clean, fully committed and synchronized on GitHub (\texttt{jaisimha18} / \texttt{main}). Complete test suite executing cleanly: \texttt{pytest} 19 passed in 3.00s.
+            \item \textbf{Repository:} Git repository committed and synchronized on GitHub (\texttt{jaisimha18} / \texttt{main}). Complete test suite executing cleanly: \texttt{pytest} 19 passed in 2.91s.
         \end{itemize}
     \end{block}
 \end{frame}
@@ -283,7 +283,7 @@
 
     \begin{block}{Relevance to Research Project}
         \footnotesize
-        The completed certifications directly contributed to the theoretical formulation of graph convolutional message passing, PyTorch Geometric implementation, random walk transition matrices, and deep learning optimization under severe class imbalance.
+        These completed courses directly supported building the Graph Neural Network pipeline, handling GraphSAGE message passing in PyTorch Geometric, implementing random walk calculations, and training models under severe class imbalance.
     \end{block}
 \end{frame}
 
@@ -295,10 +295,10 @@
         \begin{block}{Data Preprocessing Pipeline}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
-                \item \textbf{Dataset:} IBM AMLworld \texttt{HI-Small} (5,180,000 transactions, 518,573 bank accounts).
-                \item \textbf{Data Cleaning:} Removed duplicate and corrupted records; verified currency amounts.
-                \item \textbf{Chronological Split:} Sorted timestamps; Days 1--8 (Train), Day 9 (Val), Days 10--18 (Test).
-                \item \textbf{Zero Leakage:} StandardScaler fit strictly on Days 1--8; dynamic velocity metrics computed backward in time only.
+                \item \textbf{Dataset:} IBM AML Synthetic Dataset \texttt{HI-Small} (5,180,000 transactions, 518,573 bank accounts).
+                \item \textbf{Data Cleaning:} Removed duplicate and corrupted entries; verified currency amounts.
+                \item \textbf{Chronological Split:} Sorted by time: Days 1--8 (Train), Day 9 (Validation), Days 10--18 (Test).
+                \item \textbf{Zero Leakage:} Feature scaling fit strictly on the training days to prevent leaking test information.
             \end{itemize}
         \end{block}
 
@@ -307,10 +307,10 @@
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
                 \item \textbf{Nodes:} Bank accounts ($V = 518,573$).
-                \item \textbf{Node Features (8-dim):} Historical velocity, average amount sent/received, out-degree, in-degree.
-                \item \textbf{Edges:} Timestamped payments ($E \approx 5,000,000$).
-                \item \textbf{Edge Features (14-dim):} Amount, time delta, currency, payment format (ACH, Wire, Cash).
-                \item \textbf{Class Imbalance:} Fraud $<0.1\%$; solved with pos\_weight $\approx 979$ in \texttt{BCEWithLogitsLoss}.
+                \item \textbf{Node Features (8-dim):} Average amount sent/received, transaction frequency, out-degree, in-degree.
+                \item \textbf{Edges:} Timestamped money transfers ($E \approx 5,000,000$).
+                \item \textbf{Edge Features (14-dim):} Amount, time difference, currency, payment type (Wire, ACH, Cash).
+                \item \textbf{Class Imbalance:} Fraud is $<0.1\%$; handled using class weight \texttt{pos\_weight} $\approx 979$ in the loss function.
             \end{itemize}
         \end{block}
     \end{columns}
@@ -323,13 +323,13 @@
         \column{0.50\textwidth}
         \begin{block}{GraphSAGE Neighborhood Aggregation}
             \scriptsize
-            \textbf{Aggregation:}
+            \textbf{1. Mean Aggregation:}
             $$h_{\mathcal{N}(v)}^{(k)} = \text{MEAN}\left(\{h_u^{(k-1)} : u \in \mathcal{N}(v)\}\right)$$
-            \textbf{Embedding Update with Skip Connection:}
+            \textbf{2. Node Embedding Update:}
             $$h_v^{(k)} = \sigma\left(W^{(k)} \cdot \left[ h_v^{(k-1)} \parallel h_{\mathcal{N}(v)}^{(k)} \right]\right)$$
             \begin{itemize}\setlength{\itemsep}{1pt}
-                \item \textbf{Inductive:} Learns aggregation functions rather than static embeddings, allowing instant scoring of newly seen accounts.
-                \item \textbf{Skip Connection:} Concatenating prior embedding $h_v^{(k-1)}$ prevents identity loss.
+                \item \textbf{Inductive:} Learns how to aggregate neighbor information, allowing it to generate embeddings for newly arriving accounts.
+                \item \textbf{Skip Connection:} Concatenating the node's prior embedding $h_v^{(k-1)}$ keeps the account's own identity from getting lost.
             \end{itemize}
         \end{block}
 
@@ -339,20 +339,20 @@
             \textbf{LinkNeighborLoader $[S_1=15, S_2=10]$:}
             \begin{itemize}\setlength{\itemsep}{1.5pt}
                 \item \textbf{Hop 1:} Samples 15 direct neighbors.
-                \item \textbf{Hop 2:} Samples 10 neighbors of neighbors.
-                \item \textbf{Why Sample?} Full-graph convolutions on 5M edges cause Out-Of-Memory (OOM) crashes on GPU.
-                \item Bounded sampling guarantees constant GPU memory and \textbf{sub-5ms batch inference latency}.
+                \item \textbf{Hop 2:} Samples 10 neighbors of those neighbors.
+                \item \textbf{Why Sample?} Passing messages across all 5M edges at once crashes GPU memory.
+                \item Fixed sampling keeps GPU memory constant and inference fast (\textbf{$<5$ ms per batch}).
             \end{itemize}
         \end{block}
         \centering
         \vspace{0.05cm}
-        {\tiny \textbf{Sampled Neighborhood Flow:} Target Account $\leftarrow$ Hop 1 ($S_1=15$) $\leftarrow$ Hop 2 ($S_2=10$)}
+        {\tiny \textbf{Sampled Path Flow:} Target Account $\leftarrow$ Hop 1 ($S_1=15$) $\leftarrow$ Hop 2 ($S_2=10$)}
     \end{columns}
 \end{frame}
 
 % --- SLIDE 10: PHASE 3: CYCLE AWARENESS & CYCLE ATTENTION LAYER ---
 \begin{frame}{7. Phase 3: Cycle-Awareness Component \& Attention Layer}
-    \framesubtitle{Extracting Structural Loop Topologies and Overcoming The Dilution Trap}
+    \framesubtitle{Finding Circular Transactions and Fixing the Signal Dilution Problem}
     \begin{columns}[T]
         \column{0.48\textwidth}
         \begin{block}{Phase 3A: Random Walk Cycle Extractor}
@@ -362,21 +362,21 @@
             \textbf{2. Return Probabilities:}
             $$R_k(u) = (P^k)_{uu} \quad \text{for } k \in \{2, 3, 4, 5\}$$
             \begin{itemize}\setlength{\itemsep}{1pt}
-                \item Measures probability of leaving account $u$ and returning in $k$ hops.
-                \item Edge cycle affinity vector:
-                $$\mathbf{c}_{ij} = [R_2(u_i)\dots R_5(u_i), R_2(u_j)\dots R_5(u_j)]^T \in \mathbb{R}^8$$
-                \item Edge attributes expand from \textbf{14 to 22 dimensions}.
+                \item Measures the chance of starting at account $u$ and returning back in $k$ steps.
+                \item Generates 8 cycle features per edge:
+                $$\mathbf{c}_{ij} = [R_2(u_i)\dots R_5(u_i), R_2(u_j)\dots R_5(u_j)]^T$$
+                \item Expands edge features from \textbf{14 to 22 dimensions}.
             \end{itemize}
         \end{block}
 
         \column{0.50\textwidth}
         \begin{block}{Phase 3B: Cycle-Aware Attention Layer}
             \scriptsize
-            \textbf{Cycle-Conditioned Attention Weight:}
+            \textbf{Cycle Attention Weight:}
             $$\alpha_{ji}^{(l)} = \frac{\exp\left(\text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_i^{(l-1)} \parallel \mathbf{W}\mathbf{h}_j^{(l-1)} \parallel \gamma \cdot \mathbf{c}_{ji}]\right)\right)}{\sum_{k \in \mathcal{N}(i)} \exp\left(\text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_i^{(l-1)} \parallel \mathbf{W}\mathbf{h}_k^{(l-1)} \parallel \gamma \cdot \mathbf{c}_{ki}]\right)\right)}$$
-            \textbf{Attention-Modulated Node Update:}
+            \textbf{Updated Node Embedding:}
             $$\mathbf{h}_i^{(l)} = \sigma\left(\mathbf{W}_{\text{self}} \mathbf{h}_i^{(l-1)} + \mathbf{W}_{\text{neigh}} \sum_{j \in \mathcal{N}(i)} \alpha_{ji}^{(l)} \mathbf{h}_j^{(l-1)}\right)$$
-            \textbf{Why Needed?} Solves the \textbf{Dilution Trap} by dynamically amplifying messages on circular edges and suppressing benign retail noise.
+            \textbf{Why Needed?} Standard mean aggregation treats all neighbors equally. Attention assigns higher weights to edges that form cycles, preventing cycle signals from being diluted by normal traffic.
         \end{block}
     \end{columns}
 \end{frame}
@@ -398,7 +398,7 @@
             \textbf{Model Configuration} & \textbf{PR-AUC} & \textbf{Ring Recall} & \textbf{Alert Recall} & \textbf{ROC-AUC} & \textbf{Batch Latency} \\
             \midrule
             \textbf{1. Vanilla GraphSAGE Baseline} & 0.3235 & 76.9\% & 98.7\% & 0.9853 & 4.1 ms \\
-            \textbf{2. + Naive RW Features (Dilution Trap)} & 0.1113 & 63.8\% & 63.4\% & 0.9812 & 4.4 ms \\
+            \textbf{2. + Direct Cycle Features (Signal Dilution)} & 0.1113 & 63.8\% & 63.4\% & 0.9812 & 4.4 ms \\
             \textbf{3. + Cycle Attention (Proposed Model)} & \textbf{0.5759} & \textbf{85.2\%} & \textbf{98.7\%} & \textbf{0.9889} & 4.8 ms \\
             \midrule
             \textbf{Relative Gain (Proposed vs Baseline)} & \textbf{+78.0\%} & \textbf{+10.8\% abs} & \textbf{Optimal} & \textbf{+0.36\%} & \textbf{Sub-5ms Real-Time} \\
@@ -406,18 +406,18 @@
         \end{tabularx}
     \end{table}
 
-    \begin{block}{Scientific Findings \& Failure Mode Analysis}
+    \begin{block}{Key Findings from the Ablation Study}
         \footnotesize
         \begin{itemize}\setlength{\itemsep}{2pt}
-            \item \textbf{The "Dilution Trap" Confirmed:} Directly concatenating random-walk cycle return probabilities into node features causes PR-AUC to crash by \textbf{$-65.6\%$ ($0.3235 \to 0.1113$)}. Mean aggregation spreads cycle return probabilities to normal high-volume merchant neighbors, triggering a flood of false alerts.
-            \item \textbf{Cycle Attention Resolves the Dilution Trap:} Introducing learned structural attention $\alpha_{ji}$ dynamically amplifies closed-ring signals while suppressing benign merchant noise, driving PR-AUC to \textbf{0.5759 (+78.0\% boost)} and Full Ring Recall to \textbf{85.2\%}.
+            \item \textbf{Why Direct Cycle Features Fail:} Simply appending cycle numbers directly to nodes causes PR-AUC to drop sharply from \textbf{$0.3235 \to 0.1113$ ($-65.6\%$)}. Mean aggregation spreads these cycle numbers to normal high-volume merchants, causing thousands of false alarms.
+            \item \textbf{Why Cycle Attention Succeeds:} The Cycle-Aware Attention layer selectively focuses on edges that actually form suspicious cycles, boosting PR-AUC to \textbf{0.5759 (+78.0\%)} and Complete Ring Recall to \textbf{85.2\%}.
         \end{itemize}
     \end{block}
 \end{frame}
 
 % --- SLIDE 12: GRANULAR PATTERN-LEVEL TYPOLOGY EVALUATION ---
-\begin{frame}{9. Pattern-Level Performance Across Laundering Typologies}
-    \framesubtitle{Granular Evaluation on Multi-Hop Circular, Fan-Out, and Scatter-Gather Networks}
+\begin{frame}{9. Pattern-Level Performance Across Laundering Patterns}
+    \framesubtitle{Evaluation on Multi-Hop Circular, Fan-Out, and Scatter-Gather Networks}
     \begin{columns}[T]
         \column{0.52\textwidth}
         \begin{table}
@@ -426,7 +426,7 @@
             \renewcommand{\arraystretch}{1.18}
             \begin{tabular}{lcccc}
                 \toprule
-                \textbf{Laundering Typology} & \textbf{Any} & \textbf{Majority} & \textbf{Full Ring} & \textbf{Coverage} \\
+                \textbf{Laundering Pattern} & \textbf{Any} & \textbf{Majority} & \textbf{Full Ring} & \textbf{Coverage} \\
                 \midrule
                 \textbf{Circular Routing (Cycles)} & 96.4\% & 96.4\% & \textbf{85.7\%} & 93.9\% \\
                 \textbf{Fan-Out (Layering Chains)} & 100.0\% & 96.4\% & \textbf{92.9\%} & 96.4\% \\
@@ -438,44 +438,44 @@
         \end{table}
 
         \column{0.46\textwidth}
-        \begin{block}{Forensic Analysis of Typology Capture}
+        \begin{block}{Discussion of Pattern Detection}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2.5pt}
-                \item \textbf{Complete Ring Capture:} In compliance forensics, flagging only 1 or 2 edges in a 4-hop ring allows criminals to adapt. Our framework catches \textbf{85.7\% of circular rings in their entirety}.
-                \item \textbf{Near-Perfect Any-Hop Recall:} \textbf{98.7\%} of all laundering networks trigger at least one alert for compliance review.
-                \item \textbf{High Mean Pattern Coverage:} \textbf{95.2\%} average edge capture rate across complex topologies.
+                \item \textbf{Catching Entire Rings:} Catching only 1 or 2 edges in a 4-hop ring lets fraudsters continue operating. Our model catches \textbf{85.7\% of circular laundering rings completely}.
+                \item \textbf{High Alert Rate:} \textbf{98.7\%} of all laundering networks trigger at least one alert for bank review.
+                \item \textbf{Mean Pattern Coverage:} An average of \textbf{95.2\%} of all edges in laundering groups are successfully identified.
             \end{itemize}
         \end{block}
     \end{columns}
 \end{frame}
 
-% --- SLIDE 13: FORENSIC DISTINCTION: FRAUD RINGS VS BENIGN LOOPS ---
-\begin{frame}{10. Forensic Distinction: Laundering Rings vs Benign Loops}
-    \framesubtitle{Why Topology Alone is Insufficient: Separating Criminal Rings from Commercial Cycles}
+% --- SLIDE 13: DISTINGUISHING LAUNDERING RINGS FROM NORMAL BUSINESS CYCLES ---
+\begin{frame}{10. Distinguishing Laundering Rings from Normal Business Cycles}
+    \framesubtitle{Why Not All Cycles are Fraud: Separating Laundering Loops from Legitimate Business Transactions}
     \centering
     \renewcommand{\arraystretch}{1.15}
     \scriptsize
     \begin{tabularx}{\textwidth}{p{2.6cm} p{3.4cm} p{3.4cm} X}
         \toprule
-        \textbf{Forensic Dimension} & \textbf{Criminal Laundering Ring (🚨 High Risk)} & \textbf{Benign Commercial Loop (✅ Unflagged)} & \textbf{How Cycle-Aware GraphSAGE Differentiates} \\
+        \textbf{Factor} & \textbf{Laundering Ring (🚨 High Risk)} & \textbf{Normal Business Loop (✅ Unflagged)} & \textbf{How the Model Differentiates} \\
         \midrule
-        \textbf{Transaction Velocity} & Rapid sequential pass-through (hours/minutes between hops) & Natural settlement intervals (days or weeks between invoices) & Delta-time attributes in 14-dim edge tensor dynamically suppress slow loops. \\
+        \textbf{Transfer Speed} & Rapid transfers within minutes or hours between hops & Natural business intervals (days or weeks between invoices) & Time difference features in edge vectors suppress slow, routine commercial loops. \\
         \addlinespace
-        \textbf{Volume Conservation} & Strict structuring: $V_{\text{in}} \approx V_{\text{out}}$ (e.g. \$998K $\to$ \$997K $\to$ \$996K) & Variable amounts (partial refunds, discounts, corporate payroll sweeps) & Node balance volatility and edge amount distributions reveal non-commercial flow. \\
+        \textbf{Amount Consistency} & Strict structuring: almost identical amounts ($V_{\text{in}} \approx V_{\text{out}}$, e.g. \$998K $\to$ \$997K $\to$ \$996K) & Variable amounts (partial refunds, discounts, corporate payroll sweeps) & Amount distribution and balance volatility features reveal non-commercial flow. \\
         \addlinespace
-        \textbf{Model Edge Risk} & \textbf{Uniformly high risk ($P \ge 0.85$)} across every participating hop & \textbf{Low risk ($P < 0.15$)} across all participating hops & Attention weights $\alpha_{ji}$ condition on both cycle features $\mathbf{c}_{ji}$ and node risks. \\
+        \textbf{Model Risk Score} & \textbf{Uniformly high risk ($P \ge 0.85$)} across every transfer in the ring & \textbf{Low risk ($P < 0.15$)} across transfers in the loop & Attention weights combine both cycle return probability and account risk. \\
         \addlinespace
-        \textbf{Reference Test Callset} & Rings 1 \& 2 (\texttt{sample\_transactions.csv}): \textbf{Flagged 100\% at 99.7\% risk} & Ring 3 (\texttt{sample\_transactions.csv}): \textbf{0/3 flagged at 1.0\% risk} & Prevents investigator fatigue while capturing true criminal syndicates. \\
+        \textbf{Test Sample Data} & Rings 1 \& 2 (\texttt{sample\_transactions.csv}): \textbf{Flagged 100\% at 99.7\% risk} & Ring 3 (\texttt{sample\_transactions.csv}): \textbf{0/3 flagged at 1.0\% risk} & Avoids alerting bank officers for legitimate business transactions. \\
         \bottomrule
     \end{tabularx}
 \end{frame}
 
 % --- SLIDE 14: EXPERIMENTAL VISUALIZATIONS & PROTOTYPE DEMONSTRATION ---
 \begin{frame}{11. Experimental Visualizations \& Working Prototype Demo}
-    \framesubtitle{Ablation Trajectory \& Full-Stack Forensic Intelligence Web Platform}
+    \framesubtitle{Ablation Trajectory \& Interactive Web Dashboard for AML Detection}
     \begin{columns}[T]
         \column{0.48\textwidth}
-        \begin{block}{Scientific Ablation Trajectory}
+        \begin{block}{Ablation Performance Comparison}
             \centering
             \vspace{0.1cm}
             \begin{tikzpicture}[scale=0.76, every node/.style={transform shape}]
@@ -483,7 +483,7 @@
                 \node[anchor=west, font=\scriptsize] at (3.0, 2.3) {Vanilla SAGE: \textbf{0.3235}};
 
                 \draw[fill=riskRed!40, draw=riskRed] (0, 1.2) rectangle (1.0, 1.8);
-                \node[anchor=west, font=\scriptsize] at (1.2, 1.5) {+ Naive RW: \textbf{0.1113} (Trap)};
+                \node[anchor=west, font=\scriptsize] at (1.2, 1.5) {+ Direct Cycles: \textbf{0.1113} (Dilution)};
 
                 \draw[fill=cyclePurple!60, draw=cyclePurple] (0, 0.4) rectangle (5.0, 1.0);
                 \node[anchor=west, font=\scriptsize] at (5.2, 0.7) {+ Cycle Attention: \textbf{0.5759}};
@@ -493,17 +493,17 @@
             \end{tikzpicture}
         \end{block}
         \vspace{-0.1cm}
-        {\scriptsize \textbf{Key Takeaway:} Cycle attention overcomes feature dilution, producing a \textbf{+78\% PR-AUC gain}.}
+        {\scriptsize \textbf{Key Takeaway:} Cycle Attention prevents signal dilution, giving a \textbf{+78\% boost in PR-AUC}.}
 
         \column{0.48\textwidth}
-        \begin{block}{Interactive Forensic Platform Features}
+        \begin{block}{Interactive Web Dashboard Features}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{2pt}
-                \item \textbf{CSV Drag-and-Drop:} Instant client-side parsing, schema alias mapping, and error checking.
-                \item \textbf{Force-Directed Graph:} Real-time 2D network rendering using \texttt{react-force-graph-2d}.
-                \item \textbf{Color Coding:} Normal nodes (\textcolor{deepNavy}{\textbf{Blue}}), Laundering rings (\textcolor{cyclePurple}{\textbf{Purple}}), Suspicious transfers (\textcolor{riskRed}{\textbf{Red}}).
-                \item \textbf{Dynamic Threshold Slider:} Smooth real-time threshold adjustment ($0.00 \dots 1.00$).
-                \item \textbf{Forensic Loop Card:} Explains flagged laundering rings vs benign unflagged commercial cycles.
+                \item \textbf{CSV File Upload:} Drag-and-drop transactions for automated format checking.
+                \item \textbf{Interactive Graph Canvas:} Real-time 2D visualization built with \texttt{react-force-graph-2d}.
+                \item \textbf{Visual Color Coding:} Normal accounts (\textcolor{deepNavy}{\textbf{Blue}}), Laundering rings (\textcolor{cyclePurple}{\textbf{Purple}}), High-risk transfers (\textcolor{riskRed}{\textbf{Red}}).
+                \item \textbf{Risk Threshold Slider:} Live adjustable slider from $0.00$ to $1.00$.
+                \item \textbf{Cycle Cards:} Displays details of detected laundering rings and unflagged normal business loops.
             \end{itemize}
         \end{block}
     \end{columns}
@@ -514,36 +514,36 @@
     \framesubtitle{Methodological Rationale, Trade-offs, Boundary Conditions \& Limitations}
     \begin{columns}[T]
         \column{0.48\textwidth}
-        \begin{block}{1. Methodological Justification}
+        \begin{block}{1. Algorithmic Justification}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{1.5pt}
-                \item \textbf{Why Inductive GraphSAGE:} Transductive models (standard GCN) cannot score streaming unseen accounts without retraining the full Laplacian matrix ($O(N)$). GraphSAGE learns localized parameter aggregations.
-                \item \textbf{Why Random Walk Returns:} Subgraph isomorphism is NP-hard. Random walk return probabilities ($P^k_{uu}$) provide $O(k \cdot |E|)$ cycle expressiveness.
+                \item \textbf{Why Inductive GraphSAGE:} Standard GCN cannot score new, unseen accounts without retraining the entire graph. GraphSAGE learns general neighbor aggregation rules.
+                \item \textbf{Why Random Walk Returns:} Searching for exact cycles across 5M transactions is too slow. Random walk return probabilities ($P^k_{uu}$) provide a fast, efficient approximation.
             \end{itemize}
         \end{block}
 
-        \begin{block}{2. Design \& Parameter Trade-offs}
+        \begin{block}{2. Design Choices \& Trade-offs}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{1.5pt}
-                \item \textbf{Walk Horizon ($k \le 5$):} Higher-order walks ($k > 6$) incur combinatorial explosion without forensic benefit (banking rings average 3--5 hops).
-                \item \textbf{Neighbor Sampling $[15, 10]$:} Preserves sub-5ms operational latency while covering $95.2\%$ of laundering topologies.
+                \item \textbf{Walk Horizon ($k \le 5$):} Laundering loops typically span 3 to 5 hops; computing longer walks ($k > 6$) takes extra time without added detection benefit.
+                \item \textbf{Neighbor Sampling $[15, 10]$:} Keeps inference speed fast ($<5$ ms per batch) while covering $95.2\%$ of laundering patterns.
             \end{itemize}
         \end{block}
 
         \column{0.48\textwidth}
-        \begin{block}{3. Boundary Conditions \& Robustness}
+        \begin{block}{3. Handling Imbalance \& Hubs}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{1.5pt}
-                \item \textbf{Extreme Class Imbalance (0.1\%):} Solved using focal loss and class-weighted cross-entropy during batch optimization.
-                \item \textbf{Dense Banking Hubs:} Fixed-size uniform sampling prevents retail merchants from overwhelming backpropagation.
+                \item \textbf{Severe Class Imbalance ($<0.1\%$):} Solved using weighted cross-entropy loss (\texttt{pos\_weight} $\approx 979$) to ensure fraud is not ignored.
+                \item \textbf{High-Volume Merchant Hubs:} Bounded neighbor sampling prevents popular merchant accounts from dominating training.
             \end{itemize}
         \end{block}
 
         \begin{block}{4. Limitations \& Future Scope}
             \footnotesize
             \begin{itemize}\setlength{\itemsep}{1.5pt}
-                \item \textbf{Current Limitation:} Bounded to discrete temporal snapshots rather than continuous-time dynamic graphs.
-                \item \textbf{Future Scope:} Integrate with Continuous-Time Dynamic Graph Neural Networks (TGN) and extend to cross-border foreign exchange cycles.
+                \item \textbf{Current Limitation:} Evaluated on snapshot windows rather than continuous-time graphs.
+                \item \textbf{Future Scope:} Extend to Temporal Graph Networks (TGN) and cross-border currency conversion graphs.
             \end{itemize}
         \end{block}
     \end{columns}
@@ -577,43 +577,43 @@
 
 % --- SLIDE 17: LITERATURE SURVEY & BENCHMARK MATRIX (PART 1) ---
 \begin{frame}{Previous Research Work: Literature Benchmark Matrix (1/2)}
-    \framesubtitle{Critical Evaluation of Foundational Literature on Financial Graph Learning}
+    \framesubtitle{Summary of Earlier Research on Graph Neural Networks for AML Detection}
     \centering
     \renewcommand{\arraystretch}{1.12}
     \scriptsize
     \begin{tabularx}{\textwidth}{p{2.3cm} p{2.1cm} p{2.4cm} p{3.2cm} X}
         \toprule
-        \textbf{Paper \& Venue} & \textbf{Evaluated Dataset} & \textbf{Graph Architecture} & \textbf{Reported Performance} & \textbf{Critical Limitation / Research Gap} \\
+        \textbf{Paper \& Venue} & \textbf{Evaluated Dataset} & \textbf{Graph Model} & \textbf{Reported Results} & \textbf{Key Limitation / Research Gap} \\
         \midrule
-        \textbf{Altman et al.} \newline NeurIPS 2023 \newline \textit{IBM Research} & IBM AMLworld \newline (\texttt{HI-Small}: 5.18M txs, \newline 518K accounts) & Directed Account Graph \newline (8-dim node, 14-dim edge) \newline Vanilla GraphSAGE, GIN & XGBoost: PR-AUC 0.312 \newline GCN: PR-AUC 0.450 \newline Vanilla GraphSAGE: 0.554 \newline GIN + Edge: 0.601 & Evaluates standard GNNs with uniform sampling; lacks explicit cycle-counting or edge attention. \\
+        \textbf{Altman et al.} \newline NeurIPS 2023 \newline \textit{IBM Research} & IBM AMLworld \newline (\texttt{HI-Small}: 5.18M txs, \newline 518K accounts) & Directed Account Graph \newline (8-dim node, 14-dim edge) \newline Vanilla GraphSAGE, GIN & XGBoost: PR-AUC 0.312 \newline GCN: PR-AUC 0.450 \newline Vanilla GraphSAGE: 0.554 \newline GIN + Edge: 0.601 & Evaluated standard GNNs with equal neighbor weighting; lacked explicit circular path detection. \\
         \addlinespace
-        \textbf{Weber et al.} \newline KDD 2019 \newline \textit{MIT-IBM Watson} & Elliptic Bitcoin Graph \newline (203K nodes, \newline 234K edges) & Transaction Graph \newline (166 temporal features) \newline Inductive GraphSAGE & Logistic Reg.: F1 0.440 \newline Transductive GCN: 0.500 \newline Vanilla GraphSAGE: 0.650 \newline RF + GraphSAGE: 0.674 & Node-level transaction classification only; lacks ground-truth multi-hop circular laundering ring labels. \\
+        \textbf{Weber et al.} \newline KDD 2019 \newline \textit{MIT-IBM Watson} & Elliptic Bitcoin Graph \newline (203K nodes, \newline 234K edges) & Transaction Graph \newline (166 temporal features) \newline Inductive GraphSAGE & Logistic Reg.: F1 0.440 \newline Transductive GCN: 0.500 \newline Vanilla GraphSAGE: 0.650 \newline RF + GraphSAGE: 0.674 & Classified individual transactions only; lacked ground-truth labels for multi-hop circular fraud rings. \\
         \addlinespace
-        \textbf{Padhi et al.} \newline IEEE ICASSP 2021 \newline \textit{IBM Research} & IBM Synthetic Credit Card \newline (24M txs, 2K users, \newline 6K cards) & Relational Multi-Table \newline Tabular Transformers \newline (BERT / GPT self-attention) & Logistic Reg.: ROC 0.792 \newline XGBoost: ROC 0.912 \newline TabFormer: ROC 0.942 \newline F1-Score: 0.812 & Sequential token modeling cannot scale to large cyclic graphs; quadratic complexity $O(N^2)$ memory. \\
+        \textbf{Padhi et al.} \newline IEEE ICASSP 2021 \newline \textit{IBM Research} & IBM Synthetic Credit Card \newline (24M txs, 2K users, \newline 6K cards) & Tabular Transformer \newline (BERT / GPT self-attention \newline on transaction sequences) & Logistic Reg.: ROC 0.792 \newline XGBoost: ROC 0.912 \newline TabFormer: ROC 0.942 \newline F1-Score: 0.812 & Sequence models process tokens one-by-one; cannot scale to large cyclic networks due to memory cost. \\
         \addlinespace
-        \textbf{Hamilton et al.} \newline NeurIPS 2017 \newline \textit{Stanford InfoLab} & PPI, Reddit, \newline Citation Networks & Inductive Node Embeddings \newline Sample \& Aggregate \newline $[S_1=15, S_2=10]$ & Full-Graph GCN: OOM \newline GraphSAGE-Mean: F1 0.598 \newline GraphSAGE-Pool: F1 0.600 \newline Reddit Micro-F1: 0.950 & 1-WL bounded; cannot count cycles or distinguish identical degree loops from tree unfoldings. \\
+        \textbf{Hamilton et al.} \newline NeurIPS 2017 \newline \textit{Stanford InfoLab} & PPI, Reddit, \newline Citation Networks & Inductive GraphSAGE \newline Sample \& Aggregate \newline $[S_1=15, S_2=10]$ & Full-Graph GCN: OOM \newline GraphSAGE-Mean: F1 0.598 \newline GraphSAGE-Pool: F1 0.600 \newline Reddit Micro-F1: 0.950 & Mean aggregation is mathematically blind to circular flow; cannot tell loops apart from branching trees. \\
         \bottomrule
     \end{tabularx}
 \end{frame}
 
 % --- SLIDE 18: LITERATURE SURVEY & BENCHMARK MATRIX (PART 2) ---
 \begin{frame}{Previous Research Work: Literature Benchmark Matrix (2/2)}
-    \framesubtitle{Advanced State-of-the-Art Comparison and Our Proposed Novel Contribution}
+    \framesubtitle{Recent Graph Methods and Our Proposed Novel Contribution}
     \centering
     \renewcommand{\arraystretch}{1.12}
     \scriptsize
     \begin{tabularx}{\textwidth}{p{2.3cm} p{2.1cm} p{2.4cm} p{3.2cm} X}
         \toprule
-        \textbf{Paper \& Venue} & \textbf{Evaluated Dataset} & \textbf{Graph Architecture} & \textbf{Reported Performance} & \textbf{Direct Relation \& Our Novelty} \\
+        \textbf{Paper \& Venue} & \textbf{Evaluated Dataset} & \textbf{Graph Model} & \textbf{Reported Results} & \textbf{Relevance \& Our Novelty} \\
         \midrule
-        \textbf{Losavio et al.} \newline arXiv:2407.10131 \newline \textit{USI \& Bologna} & IBM AML Synthetic \newline (\texttt{HI-Small} / \texttt{Medium}) \newline Hub-dominated graphs & SALT-GNN: Statistics-aware \newline attention over dense \newline hub account nodes & XGBoost: PR-AUC 0.385 \newline GAT: PR-AUC 0.395 \newline GraphSAGE: PR-AUC 0.518 \newline SALT-GNN: PR-AUC 0.562 & Confirms that fixed neighbor sampling $[15, 10]$ prevents high-degree merchant hubs from destabilizing backprop. \\
+        \textbf{Losavio et al.} \newline arXiv:2407.10131 \newline \textit{USI \& Bologna} & IBM AML Synthetic \newline (\texttt{HI-Small} / \texttt{Medium}) \newline Hub-dominated graphs & SALT-GNN: Statistics-aware \newline attention over dense \newline merchant accounts & XGBoost: PR-AUC 0.385 \newline GAT: PR-AUC 0.395 \newline GraphSAGE: PR-AUC 0.518 \newline SALT-GNN: PR-AUC 0.562 & Confirms that fixed neighbor sampling $[15, 10]$ prevents high-volume merchant hubs from destabilizing training. \\
         \addlinespace
-        \textbf{Al-Sayed et al.} \newline IEEE Access 2024 \newline \textit{FinGraph Group} & IBM AML \texttt{HI-Small} \newline 0.1\% class imbalance & GraphSAGE-Mean vs Pool \newline with skip connection & GCN: PR-AUC 0.442 \newline GAT: PR-AUC 0.460 \newline GraphSAGE-Pool: 0.505 \newline GraphSAGE-Mean: 0.528 & Proves skip-connection $[h_v \parallel h_{\mathcal{N}(v)}]$ yields $+22\%$ recall; informs our central node retention. \\
+        \textbf{Al-Sayed et al.} \newline IEEE Access 2024 \newline \textit{FinGraph Group} & IBM AML \texttt{HI-Small} \newline 0.1\% class imbalance & GraphSAGE-Mean vs Pool \newline with skip connection & GCN: PR-AUC 0.442 \newline GAT: PR-AUC 0.460 \newline GraphSAGE-Pool: 0.505 \newline GraphSAGE-Mean: 0.528 & Proves concatenating $[h_v \parallel h_{\mathcal{N}(v)}]$ preserves account identity and boosts minority recall by $+22\%$. \\
         \addlinespace
-        \textbf{Wang et al.} \newline IEEE TKDE 2024 \newline \textit{FinTech AI Lab} & Multi-Table Bipartite \newline Card / Merchant Graph & Heterogeneous GraphSAGE \newline with 23-dim edge features & Random Forest: ROC 0.884 \newline LightGBM: ROC 0.915 \newline Bipartite SAGE: ROC 0.962 & Bipartite design cannot model unipartite circular rings ($A \to B \to A$); informs our PyG \texttt{HeteroData} schema. \\
+        \textbf{Wang et al.} \newline IEEE TKDE 2024 \newline \textit{FinTech AI Lab} & Multi-Table Bipartite \newline Card / Merchant Graph & Heterogeneous GraphSAGE \newline with 23-dim edge features & Random Forest: ROC 0.884 \newline LightGBM: ROC 0.915 \newline Bipartite SAGE: ROC 0.962 & Models User-to-Merchant bipartite paths, but cannot detect closed unipartite laundering loops ($A \to B \to A$). \\
         \addlinespace
         \rowcolor{cardBg}
-        \textbf{OUR PROPOSED} \newline \textbf{WORK (Team 113)} \newline \textit{23CSE498 Project} & \textbf{IBM AMLworld \texttt{HI-Small}} \newline (5.18M txs, 518K accounts) \newline Chronological Split & \textbf{Cycle-Aware GraphSAGE} \newline + Random Walk Cycles \newline + Structural Edge Attention & \textbf{PR-AUC: 0.5759 (+78.0\%)} \newline \textbf{Full Ring Recall: 85.2\%} \newline \textbf{Alert Recall: 98.7\%} \newline \textbf{Inference: 4.8 ms / batch} & \textbf{NOVELTY:} Overcomes 1-WL expressiveness bound and resolves the "Dilution Trap" via learned structural cycle attention $\alpha_{ji}$. \\
+        \textbf{OUR PROPOSED} \newline \textbf{WORK (Team 113)} \newline \textit{23CSE498 Project} & \textbf{IBM AMLworld \texttt{HI-Small}} \newline (5.18M txs, 518K accounts) \newline Chronological Split & \textbf{Cycle-Aware GraphSAGE} \newline + Random Walk Cycles \newline + Cycle-Aware Attention & \textbf{PR-AUC: 0.5759 (+78.0\%)} \newline \textbf{Full Ring Recall: 85.2\%} \newline \textbf{Alert Recall: 98.7\%} \newline \textbf{Inference: 4.8 ms / batch} & \textbf{OUR NOVELTY:} Solves the signal dilution problem using learned Cycle Attention $\alpha_{ji}$, successfully detecting circular laundering loops. \\
         \bottomrule
     \end{tabularx}
 \end{frame}
@@ -625,25 +625,25 @@
 
 % --- SLIDE 19: SUMMARY OF CONTRIBUTIONS ---
 \begin{frame}{Summary of Major Research Contributions}
-    \framesubtitle{Core Innovations and Technical Deliverables for Final Project Evaluation}
+    \framesubtitle{Summary of Findings and Engineering Deliverables for Final Evaluation}
     \begin{columns}[T]
         \column{0.50\textwidth}
-        \begin{block}{Scientific \& Theoretical Contributions}
+        \begin{block}{Model Innovations}
             \footnotesize
             \begin{enumerate}\setlength{\itemsep}{3pt}
-                \item \textbf{Overcame 1-WL Limitation:} Injected directed $k$-step random walk cycle return probabilities, making MPNNs cycle-aware.
-                \item \textbf{Solved the Dilution Trap:} Engineered a novel Structural Cycle Attention layer ($\alpha_{ji}$) that prevents false-alarm flooding, boosting PR-AUC by \textbf{+78.0\% (0.3235 $\to$ 0.5759)}.
-                \item \textbf{Elevated Full Ring Recall:} Increased complete circular laundering chain detection from \textbf{76.9\% to 85.2\%}.
+                \item \textbf{Cycle Feature Extraction:} Added multi-step random walk return probabilities to capture circular transaction behavior.
+                \item \textbf{Solved Signal Dilution:} Designed a Cycle-Aware Attention layer that focuses on circular paths, increasing PR-AUC by \textbf{+78.0\% (0.3235 $\to$ 0.5759)}.
+                \item \textbf{Improved Ring Detection:} Increased Complete Ring Recall from \textbf{76.9\% to 85.2\%}.
             \end{enumerate}
         \end{block}
 
         \column{0.50\textwidth}
-        \begin{block}{Engineering \& System Deliverables}
+        \begin{block}{System Deliverables}
             \footnotesize
             \begin{enumerate}\setlength{\itemsep}{3pt}
-                \item \textbf{Sub-5ms Real-Time Inference:} Maintained 4.8 ms batch execution on 5.18M transactions.
-                \item \textbf{Full-Stack Forensics Platform:} Deployed enterprise-grade React 19 + FastAPI platform with interactive graph visualization.
-                \item \textbf{Benign Loop Differentiation:} Validated distinction between criminal rings (99.7\% risk) and legitimate commercial loops (1.0\% risk).
+                \item \textbf{Fast Real-Time Inference:} Kept batch processing speed at 4.8 ms on 5.18M transactions.
+                \item \textbf{Interactive Web Dashboard:} Delivered a working React 19 + FastAPI web app with force-directed graph visualization.
+                \item \textbf{Separating Normal Cycles from Fraud:} Differentiates between laundering rings (99.7\% risk) and legitimate commercial loops (1.0\% risk).
             \end{enumerate}
         \end{block}
     \end{columns}
