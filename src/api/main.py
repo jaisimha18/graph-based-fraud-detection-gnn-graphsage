@@ -82,10 +82,37 @@ AVAILABLE_SAMPLES = [
     {
         "id": "sample_transactions.csv",
         "name": "Multi-Bank AML Investigation Stream",
-        "description": "45 authentic cross-bank transactions embedding two flagged circular laundering rings (3-hop & 4-hop, $998K volume) and one legitimate unflagged commercial loop ($3.7K), plus 35 normal transfers.",
-        "tag": "Verified Benchmark (Flagged & Unflagged)",
+        "description": "60 authentic cross-bank transactions embedding three flagged circular laundering rings (3-hop & 4-hop, $1.44M volume, flagged at 99.7%) and two legitimate unflagged commercial loops ($6.8K volume, unflagged at 1.0% and 2.6%), alongside 45 background banking transfers.",
+        "tag": "Verified Benchmark (5 Rings: 3 Flagged / 2 Unflagged)",
         "badgeColor": "purple",
-        "rows": 45,
+        "rows": 60,
+        "isCycle": True
+    },
+    {
+        "id": "sample_high_velocity_rings.csv",
+        "name": "High-Velocity Multi-Hop Laundering Rings",
+        "description": "52 transactions highlighting rapid multi-hop layered laundering (3-hop & 4-hop rings, $695K volume, flagged at 99.5% risk) alongside a legitimate commercial clearing loop ($4.25K, unflagged at 1.1% risk) and 42 background banking payments.",
+        "tag": "High-Velocity Layering (2 Flagged / 1 Unflagged)",
+        "badgeColor": "red",
+        "rows": 52,
+        "isCycle": True
+    },
+    {
+        "id": "sample_smurfing_and_fanout.csv",
+        "name": "Smurfing Fan-Out & Aggregation Stream",
+        "description": "50 transactions featuring structuring / smurfing fan-out into two criminal aggregation rings ($2.12M volume, flagged at 98.7% risk) alongside an unflagged 3-hop merchant credit loop ($1.15K, unflagged at 0.4% risk) and 41 background transfers.",
+        "tag": "Smurfing & Aggregation (2 Flagged / 1 Unflagged)",
+        "badgeColor": "amber",
+        "rows": 50,
+        "isCycle": True
+    },
+    {
+        "id": "sample_supply_chain_trade.csv",
+        "name": "Corporate Supply Chain & Infiltrated Shell Ring",
+        "description": "54 transactions contrasting legitimate multi-tier B2B supplier & vendor loops (3-hop and 4-hop, unflagged at 5.4% risk) against an infiltrated shell company laundering ring ($6.7K, flagged at 98.5% risk) across diverse institutions.",
+        "tag": "Supply Chain vs Shell Ring (1 Flagged / 2 Unflagged)",
+        "badgeColor": "emerald",
+        "rows": 54,
         "isCycle": True
     }
 ]

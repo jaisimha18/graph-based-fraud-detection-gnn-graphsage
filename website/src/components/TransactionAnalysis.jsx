@@ -10,9 +10,33 @@ const PRELOADED_SCENARIOS = [
   {
     id: 'sample_transactions.csv',
     name: 'Multi-Bank AML Investigation Stream',
-    desc: '45 authentic transactions featuring 2 flagged criminal laundering loops ($998K) and 1 unflagged benign commercial loop ($3.7K, 1.0% score) across 35 legitimate transfers.',
-    tag: 'Verified Benchmark (Flagged vs Unflagged)',
+    desc: '60 authentic transactions featuring 3 flagged laundering loops ($1.44M, 99.7% score) and 2 unflagged commercial loops ($6.8K, 1.0% & 2.6% score) across 45 normal banking transfers.',
+    tag: '5 Rings: 3 Flagged / 2 Unflagged',
     color: '#c084fc',
+    recommendedThreshold: 0.85
+  },
+  {
+    id: 'sample_high_velocity_rings.csv',
+    name: 'High-Velocity Multi-Hop Layering',
+    desc: '52 transactions highlighting rapid 3-hop & 4-hop layered laundering ($695K, 99.5% risk) alongside a legitimate commercial loop ($4.25K, unflagged at 1.1% risk).',
+    tag: 'High-Velocity Layering (2 Flagged / 1 Unflagged)',
+    color: '#f87171',
+    recommendedThreshold: 0.85
+  },
+  {
+    id: 'sample_smurfing_and_fanout.csv',
+    name: 'Smurfing Fan-Out & Aggregation',
+    desc: '50 transactions featuring structuring / smurfing fan-out into two criminal aggregation rings ($2.12M, 98.7% risk) alongside an unflagged retail credit loop ($1.15K, 0.4% risk).',
+    tag: 'Smurfing & Fan-Out (2 Flagged / 1 Unflagged)',
+    color: '#fbbf24',
+    recommendedThreshold: 0.85
+  },
+  {
+    id: 'sample_supply_chain_trade.csv',
+    name: 'Corporate Supply Chain vs Shell Ring',
+    desc: '54 transactions contrasting legitimate multi-tier B2B supplier & vendor loops (unflagged at 5.4% & 5.6% risk) against an infiltrated shell company laundering ring ($6.7K, 98.5% risk).',
+    tag: 'Supply Chain (1 Flagged / 2 Unflagged)',
+    color: '#34d399',
     recommendedThreshold: 0.85
   }
 ];
