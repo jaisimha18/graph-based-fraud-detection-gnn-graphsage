@@ -102,30 +102,31 @@
 % --- SLIDE 3: PROBLEM STATEMENT & RESEARCH GAP REFINEMENT ---
 \begin{frame}{1. Problem Statement \& Research Gap Refinement}
     \framesubtitle{Why Traditional Fraud Detection Fails on Circular Money Laundering}
+    \vspace{-0.2cm}
     \begin{block}{Refined Problem Statement}
-        \footnotesize
-        Detecting coordinated money laundering in banking transaction networks, where fraudsters route money through multiple accounts in circular loops ($A \to B \to C \to D \to A$) or split transactions (smurfing) to evade detection.
+        \scriptsize
+        Detecting coordinated money laundering where fraudsters route funds across multiple accounts in circular paths ($A \to B \to C \to D \to A$) or split transactions (smurfing) to evade detection.
     \end{block}
-
+    \vspace{-0.1cm}
     \begin{columns}[T]
         \column{0.48\textwidth}
         \begin{block}{Research Gap in Existing Methods}
-            \footnotesize
-            \begin{itemize}\setlength{\itemsep}{2pt}
-                \item \textbf{Tabular ML Limitation:} Evaluates each transaction one-by-one; completely misses the network connections between accounts.
-                \item \textbf{Standard GNN Limitation:} Standard GraphSAGE cannot distinguish circular loops from normal branching transfers.
-                \item \textbf{Signal Dilution Problem:} Mean aggregation treats every neighbor equally. The few suspicious circular transactions get mixed with thousands of normal transactions, losing the fraud signal.
+            \scriptsize
+            \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+                \item \textbf{Tabular ML Limitation:} Checks transactions individually; completely misses connections between accounts.
+                \item \textbf{Standard GNN Limitation:} Standard GraphSAGE cannot tell circular loops apart from branching transfers.
+                \item \textbf{Signal Dilution Problem:} Mean aggregation treats all neighbors equally, diluting subtle circular patterns into normal traffic.
             \end{itemize}
         \end{block}
 
         \column{0.48\textwidth}
         \begin{block}{Our Proposed Objectives}
-            \footnotesize
-            \begin{itemize}\setlength{\itemsep}{2pt}
+            \scriptsize
+            \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
                 \item \textbf{Graph Representation:} Model accounts as nodes and money transfers as directed edges.
-                \item \textbf{Random Walk Cycle Features:} Compute return probabilities ($P^2 \dots P^5$) to expose circular paths.
-                \item \textbf{Cycle-Aware Attention Layer:} Assign higher importance weights ($\alpha_{ji}$) to transactions forming circular loops.
-                \item \textbf{Strict Chronological Split:} Test strictly on future, unseen accounts to reflect real-world streaming data.
+                \item \textbf{Cycle Features:} Compute return probabilities ($P^2 \dots P^5$) to expose circular paths.
+                \item \textbf{Cycle Attention:} Assign higher importance weights ($\alpha_{ji}$) to circular transaction edges.
+                \item \textbf{Chronological Split:} Test strictly on future unseen accounts (Days 10--18).
             \end{itemize}
         \end{block}
     \end{columns}
@@ -230,10 +231,11 @@
 % --- SLIDE 6: IMPLEMENTATION STATUS OVERVIEW ---
 \begin{frame}{3. Implementation Completion Overview (100\% Completed)}
     \framesubtitle{Module-Wise Implementation, Integration Status \& Compute Environment}
+    \vspace{-0.1cm}
     \begin{table}
         \centering
         \scriptsize
-        \renewcommand{\arraystretch}{1.18}
+        \renewcommand{\arraystretch}{1.15}
         \begin{tabularx}{\textwidth}{p{3.4cm} X c}
             \toprule
             \textbf{Pipeline Module / Stage} & \textbf{Implemented Technical Functionality} & \textbf{Status} \\
@@ -244,14 +246,14 @@
             \textbf{4. Cycle Attention Layer} & Custom \texttt{CycleAwareSAGEConv} PyG layer with structural attention weights & \textbf{\textcolor{safeGreen}{100\% (Integrated)}} \\
             \textbf{5. Backend API} & FastAPI REST backend for streaming inference, threshold adjustments, and sample data & \textbf{\textcolor{safeGreen}{100\% (Functional)}} \\
             \textbf{6. Interactive Web Dashboard} & React 19 + Vite dashboard, interactive graph view, cycle detection, CSV upload & \textbf{\textcolor{safeGreen}{100\% (Functional)}} \\
-            \textbf{7. Automated Test Suite} & 19/19 passing PyTest test cases covering data loading, cycle extraction, models, and API & \textbf{\textcolor{safeGreen}{100\% (Verified)}} \\
             \bottomrule
         \end{tabularx}
     \end{table}
+    \vspace{-0.1cm}
 
     \begin{block}{Implementation Environment \& Repository Readiness}
-        \footnotesize
-        \begin{itemize}\setlength{\itemsep}{1.5pt}
+        \scriptsize
+        \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
             \item \textbf{Software Stack:} Python 3.14, PyTorch 2.x, PyTorch Geometric (PyG), NetworkX, FastAPI, React 19, Vite, Tailwind CSS.
             \item \textbf{Repository:} Git repository committed and synchronized on GitHub (\texttt{jaisimha18} / \texttt{main}). Complete test suite executing cleanly: \texttt{pytest} 19 passed in 2.91s.
         \end{itemize}
@@ -418,32 +420,32 @@
 % --- SLIDE 12: GRANULAR PATTERN-LEVEL TYPOLOGY EVALUATION ---
 \begin{frame}{9. Pattern-Level Performance Across Laundering Patterns}
     \framesubtitle{Evaluation on Multi-Hop Circular, Fan-Out, and Scatter-Gather Networks}
+    \vspace{-0.15cm}
     \begin{columns}[T]
-        \column{0.52\textwidth}
-        \begin{table}
-            \centering
-            \scriptsize
-            \renewcommand{\arraystretch}{1.18}
-            \begin{tabular}{lcccc}
-                \toprule
-                \textbf{Laundering Pattern} & \textbf{Any} & \textbf{Majority} & \textbf{Full Ring} & \textbf{Coverage} \\
-                \midrule
-                \textbf{Circular Routing (Cycles)} & 96.4\% & 96.4\% & \textbf{85.7\%} & 93.9\% \\
-                \textbf{Fan-Out (Layering Chains)} & 100.0\% & 96.4\% & \textbf{92.9\%} & 96.4\% \\
-                \textbf{Gather-Scatter (Smurfing)} & 100.0\% & 100.0\% & \textbf{81.4\%} & 96.1\% \\
-                \midrule
-                \textbf{Overall Network Average} & \textbf{98.7\%} & \textbf{98.3\%} & \textbf{85.2\%} & \textbf{95.2\%} \\
-                \bottomrule
-            \end{tabular}
-        \end{table}
+        \column{0.50\textwidth}
+        \centering
+        \vspace{0.15cm}
+        \scriptsize
+        \renewcommand{\arraystretch}{1.15}
+        \begin{tabular}{lcccc}
+            \toprule
+            \textbf{Laundering Pattern} & \textbf{Any} & \textbf{Majority} & \textbf{Full Ring} & \textbf{Coverage} \\
+            \midrule
+            \textbf{Circular Routing (Cycles)} & 96.4\% & 96.4\% & \textbf{85.7\%} & 93.9\% \\
+            \textbf{Fan-Out (Chains)} & 100.0\% & 96.4\% & \textbf{92.9\%} & 96.4\% \\
+            \textbf{Gather-Scatter} & 100.0\% & 100.0\% & \textbf{81.4\%} & 96.1\% \\
+            \midrule
+            \textbf{Overall Average} & \textbf{98.7\%} & \textbf{98.3\%} & \textbf{85.2\%} & \textbf{95.2\%} \\
+            \bottomrule
+        \end{tabular}
 
-        \column{0.46\textwidth}
-        \begin{block}{Discussion of Pattern Detection}
-            \footnotesize
-            \begin{itemize}\setlength{\itemsep}{2.5pt}
-                \item \textbf{Catching Entire Rings:} Catching only 1 or 2 edges in a 4-hop ring lets fraudsters continue operating. Our model catches \textbf{85.7\% of circular laundering rings completely}.
-                \item \textbf{High Alert Rate:} \textbf{98.7\%} of all laundering networks trigger at least one alert for bank review.
-                \item \textbf{Mean Pattern Coverage:} An average of \textbf{95.2\%} of all edges in laundering groups are successfully identified.
+        \column{0.48\textwidth}
+        \begin{block}{Pattern Detection Discussion}
+            \scriptsize
+            \begin{itemize}\setlength{\itemsep}{1.5pt}\setlength{\parskip}{0pt}
+                \item \textbf{Complete Ring Capture:} Catching 1--2 edges lets fraudsters adapt; our model captures \textbf{85.7\% of circular rings completely}.
+                \item \textbf{High Alert Rate:} \textbf{98.7\%} of all laundering networks trigger at least one alert for investigation.
+                \item \textbf{Mean Coverage:} \textbf{95.2\%} of all participating transfers in laundering groups are successfully identified.
             \end{itemize}
         \end{block}
     \end{columns}
@@ -451,20 +453,21 @@
 
 % --- SLIDE 13: DISTINGUISHING LAUNDERING RINGS FROM NORMAL BUSINESS CYCLES ---
 \begin{frame}{10. Distinguishing Laundering Rings from Normal Business Cycles}
-    \framesubtitle{Why Not All Cycles are Fraud: Separating Laundering Loops from Legitimate Business Transactions}
+    \framesubtitle{Separating Criminal Laundering Loops from Normal Commercial Transactions}
+    \vspace{-0.2cm}
     \centering
-    \renewcommand{\arraystretch}{1.15}
+    \renewcommand{\arraystretch}{1.04}
     \scriptsize
-    \begin{tabularx}{\textwidth}{p{2.6cm} p{3.4cm} p{3.4cm} X}
+    \begin{tabularx}{\textwidth}{p{2.3cm} p{3.4cm} p{3.4cm} X}
         \toprule
         \textbf{Factor} & \textbf{Laundering Ring (🚨 High Risk)} & \textbf{Normal Business Loop (✅ Unflagged)} & \textbf{How the Model Differentiates} \\
         \midrule
-        \textbf{Transfer Speed} & Rapid transfers within minutes or hours between hops & Natural business intervals (days or weeks between invoices) & Time difference features in edge vectors suppress slow, routine commercial loops. \\
-        \addlinespace
-        \textbf{Amount Consistency} & Strict structuring: almost identical amounts ($V_{\text{in}} \approx V_{\text{out}}$, e.g. \$998K $\to$ \$997K $\to$ \$996K) & Variable amounts (partial refunds, discounts, corporate payroll sweeps) & Amount distribution and balance volatility features reveal non-commercial flow. \\
-        \addlinespace
-        \textbf{Model Risk Score} & \textbf{Uniformly high risk ($P \ge 0.85$)} across every transfer in the ring & \textbf{Low risk ($P < 0.15$)} across transfers in the loop & Attention weights combine both cycle return probability and account risk. \\
-        \addlinespace
+        \textbf{Transfer Speed} & Rapid transfers within minutes or hours between accounts & Natural business intervals (days or weeks between invoices) & Time difference features in edge vectors suppress slow commercial loops. \\
+        \addlinespace[2pt]
+        \textbf{Amount Flow} & Structuring: almost identical amounts ($V_{\text{in}} \approx V_{\text{out}}$, e.g. \$998K $\to$ \$997K) & Variable amounts (refunds, supplier discounts, payroll sweeps) & Amount distribution and balance volatility features reveal unnatural flows. \\
+        \addlinespace[2pt]
+        \textbf{Model Risk Score} & \textbf{High risk ($P \ge 0.85$)} across every transfer in the ring & \textbf{Low risk ($P < 0.15$)} across transfers in the loop & Attention weights combine cycle return probability with account risk. \\
+        \addlinespace[2pt]
         \textbf{Test Sample Data} & Rings 1 \& 2 (\texttt{sample\_transactions.csv}): \textbf{Flagged 100\% at 99.7\% risk} & Ring 3 (\texttt{sample\_transactions.csv}): \textbf{0/3 flagged at 1.0\% risk} & Avoids alerting bank officers for legitimate business transactions. \\
         \bottomrule
     \end{tabularx}
@@ -512,36 +515,37 @@
 % --- SLIDE 15: TECHNICAL JUSTIFICATION, DESIGN TRADE-OFFS & INSIGHTS ---
 \begin{frame}{12. Technical Justification, Design Trade-offs \& Insights}
     \framesubtitle{Methodological Rationale, Trade-offs, Boundary Conditions \& Limitations}
+    \vspace{-0.15cm}
     \begin{columns}[T]
         \column{0.48\textwidth}
         \begin{block}{1. Algorithmic Justification}
-            \footnotesize
-            \begin{itemize}\setlength{\itemsep}{1.5pt}
-                \item \textbf{Why Inductive GraphSAGE:} Standard GCN cannot score new, unseen accounts without retraining the entire graph. GraphSAGE learns general neighbor aggregation rules.
-                \item \textbf{Why Random Walk Returns:} Searching for exact cycles across 5M transactions is too slow. Random walk return probabilities ($P^k_{uu}$) provide a fast, efficient approximation.
+            \scriptsize
+            \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+                \item \textbf{Why Inductive GraphSAGE:} Standard GCN cannot score new accounts without retraining. GraphSAGE learns general neighbor aggregation rules.
+                \item \textbf{Why Random Walk Returns:} Searching exact cycles on 5M transactions is too slow; random walks provide a fast approximation.
             \end{itemize}
         \end{block}
 
         \begin{block}{2. Design Choices \& Trade-offs}
-            \footnotesize
-            \begin{itemize}\setlength{\itemsep}{1.5pt}
-                \item \textbf{Walk Horizon ($k \le 5$):} Laundering loops typically span 3 to 5 hops; computing longer walks ($k > 6$) takes extra time without added detection benefit.
-                \item \textbf{Neighbor Sampling $[15, 10]$:} Keeps inference speed fast ($<5$ ms per batch) while covering $95.2\%$ of laundering patterns.
+            \scriptsize
+            \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+                \item \textbf{Walk Horizon ($k \le 5$):} Laundering loops span 3--5 hops; longer walks ($k > 6$) take time without added benefit.
+                \item \textbf{Neighbor Sampling $[15, 10]$:} Keeps inference fast ($<5$ ms) while covering $95.2\%$ of laundering patterns.
             \end{itemize}
         \end{block}
 
         \column{0.48\textwidth}
         \begin{block}{3. Handling Imbalance \& Hubs}
-            \footnotesize
-            \begin{itemize}\setlength{\itemsep}{1.5pt}
-                \item \textbf{Severe Class Imbalance ($<0.1\%$):} Solved using weighted cross-entropy loss (\texttt{pos\_weight} $\approx 979$) to ensure fraud is not ignored.
-                \item \textbf{High-Volume Merchant Hubs:} Bounded neighbor sampling prevents popular merchant accounts from dominating training.
+            \scriptsize
+            \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
+                \item \textbf{Class Imbalance ($<0.1\%$):} Solved using weighted cross-entropy loss (\texttt{pos\_weight} $\approx 979$).
+                \item \textbf{Merchant Hubs:} Bounded neighbor sampling prevents popular merchant accounts from dominating training.
             \end{itemize}
         \end{block}
 
         \begin{block}{4. Limitations \& Future Scope}
-            \footnotesize
-            \begin{itemize}\setlength{\itemsep}{1.5pt}
+            \scriptsize
+            \begin{itemize}\setlength{\itemsep}{1pt}\setlength{\parskip}{0pt}
                 \item \textbf{Current Limitation:} Evaluated on snapshot windows rather than continuous-time graphs.
                 \item \textbf{Future Scope:} Extend to Temporal Graph Networks (TGN) and cross-border currency conversion graphs.
             \end{itemize}
@@ -552,8 +556,9 @@
 % --- SLIDE 16: GUIDE REVIEW MILESTONE CHECKLIST ---
 \begin{frame}{13. Milestone Checklist for Guide Review}
     \framesubtitle{Comprehensive Verification Against Dr. Anbazhagan M's 7 Guide Review Criteria}
+    \vspace{-0.2cm}
     \centering
-    \renewcommand{\arraystretch}{1.18}
+    \renewcommand{\arraystretch}{1.04}
     \scriptsize
     \begin{tabularx}{\textwidth}{c p{6.2cm} p{4.6cm} c}
         \toprule
@@ -578,20 +583,21 @@
 % --- SLIDE 17: LITERATURE SURVEY & BENCHMARK MATRIX (PART 1) ---
 \begin{frame}{Previous Research Work: Literature Benchmark Matrix (1/2)}
     \framesubtitle{Summary of Earlier Research on Graph Neural Networks for AML Detection}
+    \vspace{-0.2cm}
     \centering
-    \renewcommand{\arraystretch}{1.12}
+    \renewcommand{\arraystretch}{1.03}
     \scriptsize
-    \begin{tabularx}{\textwidth}{p{2.3cm} p{2.1cm} p{2.4cm} p{3.2cm} X}
+    \begin{tabularx}{\textwidth}{p{2.3cm} p{2.2cm} p{2.4cm} p{2.9cm} X}
         \toprule
-        \textbf{Paper \& Venue} & \textbf{Evaluated Dataset} & \textbf{Graph Model} & \textbf{Reported Results} & \textbf{Key Limitation / Research Gap} \\
+        \textbf{Paper \& Venue} & \textbf{Evaluated Dataset} & \textbf{Graph Model} & \textbf{Reported Results} & \textbf{Key Limitation / Gap} \\
         \midrule
-        \textbf{Altman et al.} \newline NeurIPS 2023 \newline \textit{IBM Research} & IBM AMLworld \newline (\texttt{HI-Small}: 5.18M txs, \newline 518K accounts) & Directed Account Graph \newline (8-dim node, 14-dim edge) \newline Vanilla GraphSAGE, GIN & XGBoost: PR-AUC 0.312 \newline GCN: PR-AUC 0.450 \newline Vanilla GraphSAGE: 0.554 \newline GIN + Edge: 0.601 & Evaluated standard GNNs with equal neighbor weighting; lacked explicit circular path detection. \\
-        \addlinespace
-        \textbf{Weber et al.} \newline KDD 2019 \newline \textit{MIT-IBM Watson} & Elliptic Bitcoin Graph \newline (203K nodes, \newline 234K edges) & Transaction Graph \newline (166 temporal features) \newline Inductive GraphSAGE & Logistic Reg.: F1 0.440 \newline Transductive GCN: 0.500 \newline Vanilla GraphSAGE: 0.650 \newline RF + GraphSAGE: 0.674 & Classified individual transactions only; lacked ground-truth labels for multi-hop circular fraud rings. \\
-        \addlinespace
-        \textbf{Padhi et al.} \newline IEEE ICASSP 2021 \newline \textit{IBM Research} & IBM Synthetic Credit Card \newline (24M txs, 2K users, \newline 6K cards) & Tabular Transformer \newline (BERT / GPT self-attention \newline on transaction sequences) & Logistic Reg.: ROC 0.792 \newline XGBoost: ROC 0.912 \newline TabFormer: ROC 0.942 \newline F1-Score: 0.812 & Sequence models process tokens one-by-one; cannot scale to large cyclic networks due to memory cost. \\
-        \addlinespace
-        \textbf{Hamilton et al.} \newline NeurIPS 2017 \newline \textit{Stanford InfoLab} & PPI, Reddit, \newline Citation Networks & Inductive GraphSAGE \newline Sample \& Aggregate \newline $[S_1=15, S_2=10]$ & Full-Graph GCN: OOM \newline GraphSAGE-Mean: F1 0.598 \newline GraphSAGE-Pool: F1 0.600 \newline Reddit Micro-F1: 0.950 & Mean aggregation is mathematically blind to circular flow; cannot tell loops apart from branching trees. \\
+        \textbf{Altman et al.} \newline NeurIPS 2023 & IBM AMLworld \newline (\texttt{HI-Small}: 5.18M txs) & Directed Account Graph \newline (8-dim node, 14-dim edge) & Vanilla SAGE: 0.554 \newline GIN + Edge: 0.601 & Tested standard GNNs with equal neighbor weights; no cycle detection. \\
+        \addlinespace[2pt]
+        \textbf{Weber et al.} \newline KDD 2019 & Elliptic Bitcoin \newline (203K nodes, 234K edges) & Transaction Graph \newline (166 temporal features) & Vanilla SAGE: 0.650 \newline RF + SAGE: 0.674 & Node classification only; lacks multi-hop circular fraud ring labels. \\
+        \addlinespace[2pt]
+        \textbf{Padhi et al.} \newline IEEE ICASSP 2021 & Synthetic Credit Card \newline (24M txs, 2K users) & Tabular Transformer \newline (BERT/GPT on sequences) & TabFormer: ROC 0.942 \newline F1-Score: 0.812 & Sequence models cannot scale to large cyclic networks due to memory cost. \\
+        \addlinespace[2pt]
+        \textbf{Hamilton et al.} \newline NeurIPS 2017 & PPI, Reddit, \newline Citation Networks & Inductive GraphSAGE \newline $[S_1=15, S_2=10]$ & Reddit F1: 0.950 \newline PPI F1: 0.598 & Mean aggregation is blind to circular flow; cannot tell loops from trees. \\
         \bottomrule
     \end{tabularx}
 \end{frame}
@@ -599,21 +605,22 @@
 % --- SLIDE 18: LITERATURE SURVEY & BENCHMARK MATRIX (PART 2) ---
 \begin{frame}{Previous Research Work: Literature Benchmark Matrix (2/2)}
     \framesubtitle{Recent Graph Methods and Our Proposed Novel Contribution}
+    \vspace{-0.2cm}
     \centering
-    \renewcommand{\arraystretch}{1.12}
+    \renewcommand{\arraystretch}{1.03}
     \scriptsize
-    \begin{tabularx}{\textwidth}{p{2.3cm} p{2.1cm} p{2.4cm} p{3.2cm} X}
+    \begin{tabularx}{\textwidth}{p{2.3cm} p{2.2cm} p{2.4cm} p{2.9cm} X}
         \toprule
         \textbf{Paper \& Venue} & \textbf{Evaluated Dataset} & \textbf{Graph Model} & \textbf{Reported Results} & \textbf{Relevance \& Our Novelty} \\
         \midrule
-        \textbf{Losavio et al.} \newline arXiv:2407.10131 \newline \textit{USI \& Bologna} & IBM AML Synthetic \newline (\texttt{HI-Small} / \texttt{Medium}) \newline Hub-dominated graphs & SALT-GNN: Statistics-aware \newline attention over dense \newline merchant accounts & XGBoost: PR-AUC 0.385 \newline GAT: PR-AUC 0.395 \newline GraphSAGE: PR-AUC 0.518 \newline SALT-GNN: PR-AUC 0.562 & Confirms that fixed neighbor sampling $[15, 10]$ prevents high-volume merchant hubs from destabilizing training. \\
-        \addlinespace
-        \textbf{Al-Sayed et al.} \newline IEEE Access 2024 \newline \textit{FinGraph Group} & IBM AML \texttt{HI-Small} \newline 0.1\% class imbalance & GraphSAGE-Mean vs Pool \newline with skip connection & GCN: PR-AUC 0.442 \newline GAT: PR-AUC 0.460 \newline GraphSAGE-Pool: 0.505 \newline GraphSAGE-Mean: 0.528 & Proves concatenating $[h_v \parallel h_{\mathcal{N}(v)}]$ preserves account identity and boosts minority recall by $+22\%$. \\
-        \addlinespace
-        \textbf{Wang et al.} \newline IEEE TKDE 2024 \newline \textit{FinTech AI Lab} & Multi-Table Bipartite \newline Card / Merchant Graph & Heterogeneous GraphSAGE \newline with 23-dim edge features & Random Forest: ROC 0.884 \newline LightGBM: ROC 0.915 \newline Bipartite SAGE: ROC 0.962 & Models User-to-Merchant bipartite paths, but cannot detect closed unipartite laundering loops ($A \to B \to A$). \\
-        \addlinespace
+        \textbf{Losavio et al.} \newline arXiv:2407.10131 & IBM AML Synthetic \newline (Hub-dominated graphs) & SALT-GNN: Attention over \newline dense merchant accounts & GraphSAGE: PR-AUC 0.518 \newline SALT-GNN: PR-AUC 0.562 & Confirms fixed sampling $[15, 10]$ prevents merchant hubs from destabilizing training. \\
+        \addlinespace[2pt]
+        \textbf{Al-Sayed et al.} \newline IEEE Access 2024 & IBM AML \texttt{HI-Small} \newline 0.1\% class imbalance & GraphSAGE-Mean vs Pool \newline with skip connection & SAGE-Pool: PR-AUC 0.505 \newline SAGE-Mean: PR-AUC 0.528 & Proves concatenating $[h_v \parallel h_{\mathcal{N}(v)}]$ preserves account identity (+22\% recall). \\
+        \addlinespace[2pt]
+        \textbf{Wang et al.} \newline IEEE TKDE 2024 & Bipartite Card / \newline Merchant Graph & Heterogeneous GraphSAGE \newline (23-dim edge features) & Bipartite SAGE: ROC 0.962 \newline LightGBM: ROC 0.915 & Models User-to-Merchant bipartite paths, but cannot detect closed laundering loops. \\
+        \addlinespace[2pt]
         \rowcolor{cardBg}
-        \textbf{OUR PROPOSED} \newline \textbf{WORK (Team 113)} \newline \textit{23CSE498 Project} & \textbf{IBM AMLworld \texttt{HI-Small}} \newline (5.18M txs, 518K accounts) \newline Chronological Split & \textbf{Cycle-Aware GraphSAGE} \newline + Random Walk Cycles \newline + Cycle-Aware Attention & \textbf{PR-AUC: 0.5759 (+78.0\%)} \newline \textbf{Full Ring Recall: 85.2\%} \newline \textbf{Alert Recall: 98.7\%} \newline \textbf{Inference: 4.8 ms / batch} & \textbf{OUR NOVELTY:} Solves the signal dilution problem using learned Cycle Attention $\alpha_{ji}$, successfully detecting circular laundering loops. \\
+        \textbf{OUR PROPOSED} \newline \textbf{WORK (Team 113)} & \textbf{IBM AML \texttt{HI-Small}} \newline (5.18M txs, 518K accts) & \textbf{Cycle-Aware GraphSAGE} \newline + RW Cycles + Attention & \textbf{PR-AUC: 0.5759 (+78\%)} \newline \textbf{Full Ring Recall: 85.2\%} & \textbf{NOVELTY:} Overcomes signal dilution using learned Cycle Attention $\alpha_{ji}$ on circular loops. \\
         \bottomrule
     \end{tabularx}
 \end{frame}
@@ -679,19 +686,12 @@
     \end{thebibliography}
 \end{frame}
 
-% --- SLIDE 21: THANK YOU & VIVA VOCE ---
+% --- SLIDE 21: THANK YOU ---
 \begin{frame}
     \centering
-    \vspace{0.8cm}
-    {\Huge \textbf{\textcolor{amritaMaroon}{Thank You}}} \\[0.3cm]
-    {\large \textbf{Questions \& Technical Viva Voce}} \\[0.4cm]
-    \begin{tikzpicture}
-        \node[draw=amritaMaroon, fill=cardBg, rounded corners=3pt, inner sep=6pt] {
-            \scriptsize \textbf{Demo \& Codebase:} React 19 Frontend + FastAPI Backend + Cycle-Aware GraphSAGE (\texttt{jaisimha18/main})
-        };
-    \end{tikzpicture} \\
-    \vspace{0.4cm}
-    {\footnotesize \textbf{External Evaluation Panel} \quad | \quad Department of Computer Science and Engineering}
+    \vspace{1.5cm}
+    {\Huge \textbf{\textcolor{amritaMaroon}{Thank You}}} \\[0.5cm]
+    {\Large \textbf{Questions \& Discussion}}
 \end{frame}
 
 \end{document}
