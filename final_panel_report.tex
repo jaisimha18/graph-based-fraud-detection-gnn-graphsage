@@ -84,56 +84,111 @@
 
 \section{Abstract}
 \noindent
-Anti-Money Laundering (AML) in financial networks is challenged by coordinated criminal syndicates that route illicit funds through circular accounts ($A \to B \to C \to D \to A$) and smurfing structures to bypass detection. Traditional tabular machine learning models examine transactions independently and miss connections between accounts. While Graph Neural Networks (GNNs) such as GraphSAGE model relational data, their standard mean aggregation treats all neighboring transactions equally. Consequently, subtle circular transactions are diluted by thousands of normal banking transactions (the Signal Dilution Problem). To resolve this limitation, we present an inductive, cycle-aware Graph Neural Network framework. First, we compute multi-step Random Walk Cycle Return Probabilities ($P^2, P^3, P^4, P^5$) to expose circular paths without leaking future temporal data. Second, we engineer a custom Cycle-Aware SAGE Convolution layer (\texttt{CycleAwareSAGEConv}) that applies learned structural attention weights ($\alpha_{ji}$) to prioritize circular edges during message passing. We evaluate our framework on the IBM AMLworld \texttt{HI-Small} benchmark (5.18M transactions across 518,573 accounts) under a strict chronological split (Days 1--8 Train, Day 9 Validation, Days 10--18 Test). Our proposed model achieves a Precision-Recall AUC (PR-AUC) of \textbf{0.5759}, representing a \textbf{+78.0\% relative improvement} over vanilla GraphSAGE ($0.3235$), while increasing Complete Ring Recall from \textbf{76.9\% to 85.2\%}. Our ablation study confirms that directly appending cycle features causes a $-65.6\%$ performance drop due to signal dilution, proving the necessity of our cycle attention mechanism. An interactive web dashboard with real-time graph visualization and sub-5ms batch inference is fully implemented and verified.
+Anti-Money Laundering (AML) in financial transaction networks faces severe challenges from organized crime syndicates that disguise illicit capital flows using circular routing ($A \to B \to C \to D \to A$) and transaction structuring (smurfing). Traditional tabular machine learning models treat transactions independently and fail to detect network topologies connecting accounts. While Graph Neural Networks (GNNs) such as GraphSAGE learn relational embeddings, their standard neighborhood mean aggregation treats all neighbor transfers equally. In real banking systems where fraud is less than 0.1\%, this uniform weighting causes the subtle signals of circular laundering loops to be diluted by thousands of normal transactions (the Signal Dilution Problem). To address this limitation, we present an inductive, cycle-aware Graph Neural Network framework. First, we extract multi-step Random Walk Cycle Return Probabilities ($P^2, P^3, P^4, P^5$) to quantify the likelihood of circular paths without temporal leakage. Second, we engineer a custom Cycle-Aware SAGE Convolution layer (\texttt{CycleAwareSAGEConv}) with learned structural attention weights ($\alpha_{ji}$) that dynamically prioritize circular edges during message passing. We evaluate our architecture on the IBM AMLworld \texttt{HI-Small} benchmark (5.18M transactions across 518,573 accounts) under a strict chronological split (Days 1--8 Train, Day 9 Validation, Days 10--18 Test). Our proposed framework achieves a Precision-Recall AUC (PR-AUC) of \textbf{0.5759}, representing a \textbf{+78.0\% relative improvement} over vanilla GraphSAGE ($0.3235$), while elevating Complete Ring Recall from \textbf{76.9\% to 85.2\%}. Our ablation experiments confirm that directly appending cycle features causes a $-65.6\%$ performance drop ($0.1113$) due to signal dilution, proving the necessity of our structural attention mechanism. An interactive web dashboard with real-time force-directed graph visualization and sub-5ms batch inference is fully operational.
 
 % --- 2. PROBLEM DEFINITION, MOTIVATION & LITERATURE SURVEY ---
 \section{Problem Definition, Research Motivation \& Literature Review}
 
 \subsection{Problem Statement \& Research Motivation}
 \begin{itemize}[noitemsep, topsep=2pt]
-    \item \textbf{Problem Statement:} Detecting coordinated financial fraud and circular money laundering patterns in large-scale streaming banking multigraphs where funds are circulated through multi-hop account loops ($A \to B \to C \to D \to A$) to obscure origin and ownership.
-    \item \textbf{Research Motivation:} Over \$2 Trillion is laundered globally every year, with less than 5\% seized by law enforcement. Legacy Rule-Based Transaction Monitoring Systems (TMS) generate over 95\% false positive rates and cannot track coordinated multi-party topologies.
+    \item \textbf{Problem Statement:} Detecting coordinated, multi-party financial fraud and circular money laundering patterns in streaming banking multigraphs where funds are routed through closed account loops ($A \to B \to C \to D \to A$) to conceal beneficial ownership.
+    \item \textbf{Research Motivation:} More than \$2 Trillion is laundered annually worldwide, with less than 5\% seized by compliance authorities. Rule-Based Transaction Monitoring Systems (TMS) generate over 95\% false positives and are blind to complex network flows.
     \item \textbf{Research Objectives:}
     \begin{enumerate}[noitemsep, topsep=2pt]
-        \item \textbf{Objective 1:} Extract multi-step Random Walk Cycle Return Probabilities ($R_k(u) = (P^k)_{uu}$ for $k \in \{2,3,4,5\}$) on directed transaction graphs with zero future temporal leakage.
-        \item \textbf{Objective 2:} Engineer a Cycle-Aware Attention Layer (\texttt{CycleAwareSAGEConv}) that assigns higher aggregation weights to circular transaction paths, solving the signal dilution problem.
-        \item \textbf{Objective 3:} Evaluate the architecture on the 5.18M-transaction IBM AML dataset using a strict chronological split, achieving $>75\%$ PR-AUC improvement, $>85\%$ complete ring recall, and sub-5ms inference latency.
+        \item \textbf{Objective 1:} Extract multi-step Random Walk Cycle Return Probabilities ($R_k(u) = (P^k)_{uu}$ for $k \in \{2,3,4,5\}$) on directed transaction multigraphs with zero future temporal leakage.
+        \item \textbf{Objective 2:} Engineer a Cycle-Aware Attention Layer (\texttt{CycleAwareSAGEConv}) that weights circular transaction edges higher, resolving the signal dilution problem during neighborhood aggregation.
+        \item \textbf{Objective 3:} Evaluate on the 5.18M-transaction IBM AML dataset using a strict chronological split, achieving $>75\%$ PR-AUC boost, $>85\%$ complete ring recall, and maintaining sub-5ms batch inference.
     \end{enumerate}
 \end{itemize}
 
 \subsection{Literature Review \& Research Gap}
 \noindent
-Table~\ref{tab:lit_survey} summarizes the foundational literature reviewed for this project, highlighting methodologies, achievements, and structural limitations.
+Table~\ref{tab:lit_survey_1} and Table~\ref{tab:lit_survey_2} synthesize the literature survey across foundational graph models, time-aware architectures, attention mechanisms, multi-entity graphs, limited training data approaches, classical tabular models, and recent state-of-the-art fraud detection trends.
 
 \begin{table}[H]
     \centering
     \footnotesize
     \renewcommand{\arraystretch}{1.20}
-    \begin{tabular}{|p{3.2cm}|p{3.8cm}|p{4.2cm}|p{3.8cm}|}
+    \begin{tabular}{|p{3.2cm}|p{3.8cm}|p{3.8cm}|p{4.2cm}|}
         \hline
-        \textbf{Author / Year / Citation} & \textbf{Core Methodology Used} & \textbf{Key Findings / Strengths} & \textbf{Identified Limitations} \\
+        \textbf{Category} & \textbf{Merits} & \textbf{Demerits} & \textbf{Future Work Scope} \\
         \hline
-        Altman et al. (2023) \cite{altman2023realistic} & IBM AMLworld dataset; tested vanilla GraphSAGE and GIN. & Established 5.18M transaction benchmark; GraphSAGE reached 0.554 PR-AUC. & Evaluated basic GNNs with equal neighbor weighting; lacks cycle detection. \\
+        \textbf{Foundational Graph Models} (GCN, GraphSAGE, GAT) \cite{kipf2017semi, hamilton2017inductive, velickovic2018graph} &
+        - Learn local neighborhood patterns \newline
+        - Good generalization ability \newline
+        - High account-level accuracy &
+        - Fail to detect circular fraud \newline
+        - Weak in coordinated attack detection &
+        - Integrate structural pattern detection \newline
+        - Improve multi-hop fraud modeling \\
         \hline
-        Weber et al. (2019) \cite{weber2019anti} & Inductive GraphSAGE on Elliptic Bitcoin transaction graph. & Showed inductive GNNs outperform static GCNs (0.650 vs 0.500 F1) on temporal splits. & Node classification only; lacks ground-truth labels for multi-hop circular rings. \\
+        \textbf{Time-Aware Graph Models} \cite{weber2019anti, kim2024temporal} &
+        - Capture transaction timing \newline
+        - Improve detection by 11--13\% &
+        - Higher computational cost \newline
+        - Increased architectural complexity &
+        - Reduce time-model overhead \newline
+        - Hybrid structural + temporal design \\
         \hline
-        Padhi et al. (2021) \cite{padhi2021tabular} & Tabular Transformers (BERT/GPT) on credit card logs. & Modeled transaction sequence tokens; reached 0.942 ROC-AUC. & Sequence models cannot scale to large cyclic networks ($O(N^2)$ memory). \\
-        \hline
-        Hamilton et al. (2017) \cite{hamilton2017inductive} & Inductive GraphSAGE with neighbor sampling $[S_1, S_2]$. & Scalable mini-batch training; fast inductive node embeddings. & Standard mean aggregation is blind to circular loops; treats loops as branching trees. \\
-        \hline
-        Losavio et al. (2024) \cite{losavio2024salt} & SALT-GNN: Statistics-aware attention on dense hubs. & Showed $[15, 10]$ neighbor sampling stabilizes training on merchant hubs. & Focuses on hub degree distributions rather than multi-hop circular flow detection. \\
-        \hline
-        Al-Sayed et al. (2024) \cite{alsayed2024comparative} & Evaluated GraphSAGE with skip connections under 0.1\% fraud. & Skip connections $[h_v \parallel h_{\mathcal{N}(v)}]$ boosted minority recall by $+22\%$. & Standard skip connections preserve node identity but do not track circular edges. \\
-        \hline
-        Wang et al. (2024) \cite{wang2024heterogeneous} & Bipartite Heterogeneous GraphSAGE on card-merchant graphs. & Modeled user-merchant edges; achieved 0.962 ROC-AUC. & Bipartite design cannot capture closed unipartite loops ($A \to B \to C \to A$). \\
+        \textbf{Smart Sampling \& Attention Methods} \cite{tian2023transaction, kumar2024graphsage} &
+        - Better neighbor selection \newline
+        - Focus on relevant transactions &
+        - High latency \newline
+        - Difficult real-time deployment &
+        - Optimize for low-latency systems \newline
+        - Lightweight attention models \\
         \hline
     \end{tabular}
-    \caption{Summary of Key Literature Surveyed and Identified Limitations}
-    \label{tab:lit_survey}
+    \caption{Literature Survey Summary Table -- I}
+    \label{tab:lit_survey_1}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \footnotesize
+    \renewcommand{\arraystretch}{1.20}
+    \begin{tabular}{|p{3.2cm}|p{3.8cm}|p{3.8cm}|p{4.2cm}|}
+        \hline
+        \textbf{Category} & \textbf{Merits} & \textbf{Demerits} & \textbf{Future Work Scope} \\
+        \hline
+        \textbf{Multi-Entity Graph Models} \cite{ieeecis2019, altman2023realistic} &
+        - Rich relational representation \newline
+        - Unified accounts + wallets + transactions &
+        - Heavy feature engineering \newline
+        - Cannot detect loop-based fraud effectively &
+        - Automated feature learning \newline
+        - Explicit cycle/loop modeling \\
+        \hline
+        \textbf{Limited Training Data Approaches} \cite{fajri2025applying} &
+        - Works with small labeled data \newline
+        - Useful for rare fraud cases &
+        - Performance drops in imbalanced data \newline
+        - Requires augmentation or time context &
+        - Synthetic fraud generation \newline
+        - Better imbalance handling \\
+        \hline
+        \textbf{Classical ML} (XGBoost, Random Forest) &
+        - Strong on tabular datasets \newline
+        - Efficient individual fraud detection &
+        - No relational modeling \newline
+        - Cannot detect coordinated fraud &
+        - Hybrid ML + GNN systems \\
+        \hline
+        \textbf{State-of-the-Art Trends} \cite{fraudgt2023, pan20232sfgl, enhancedgnn2024, recentgnn2025, graphmethods2025} &
+        - Focus on scalability \newline
+        - Emphasis on explainability &
+        - Struggle with complex fraud networks \newline
+        - Deployment challenges at scale &
+        - Efficient large-scale graph systems \newline
+        - Explainable structural fraud detection \\
+        \hline
+    \end{tabular}
+    \caption{Literature Survey Summary Table -- II}
+    \label{tab:lit_survey_2}
 \end{table}
 
 \noindent
-\textbf{Summary of Research Gap:} Standard spatial GNNs rely on uniform neighborhood mean aggregation. In financial networks where fraud is less than 0.1\%, the weak structural signal of a circular laundering ring is averaged out and diluted across dozens of normal, high-volume transactions (the Signal Dilution Problem). Furthermore, directly adding cycle numbers to node features causes thousands of false alarms because normal merchant hubs also touch cycles. Existing research lacks an inductive mechanism that explicitly detects multi-step circular paths and applies structural attention to weight circular transactions during neighborhood aggregation.
+\textbf{Summary of Research Gap:} While foundational graph neural networks learn local neighborhoods, their standard mean aggregation treats all transactions equally. In extreme class imbalance (fraud $<0.1\%$), subtle circular laundering loops are completely diluted by normal banking flows (the Signal Dilution Problem). Furthermore, directly adding cycle features to node vectors causes a $-65.6\%$ performance crash because normal merchant hubs also touch cycles. Existing research identifies the need for \textit{"Explicit cycle/loop modeling"}, \textit{"Lightweight attention models"}, and \textit{"Low-latency deployment"}—the precise research gaps solved by our Cycle-Aware GraphSAGE architecture.
 
 % --- 3. PROPOSED METHODOLOGY & SOLUTION DESIGN ---
 \section{Proposed Methodology \& Solution Design}
@@ -204,7 +259,7 @@ The proposed architecture consists of five sequential stages designed for stream
     \end{itemize}
     \item \textbf{Evaluation Metrics:}
     \begin{itemize}[noitemsep]
-        \item \textbf{PR-AUC (Precision-Recall Area Under Curve):} Primary optimization metric. Under 0.1\% class imbalance, ROC-AUC is misleadingly high ($>98\%$) because legitimate negatives dominate; PR-AUC strictly penalizes false alarms.
+        \item \textbf{PR-AUC (Precision-Recall Area Under Curve):} Primary optimization metric under 0.1\% class imbalance.
         \item \textbf{Complete Ring Recall:} The percentage of complete circular laundering rings where all participating transaction edges are successfully flagged.
         \item \textbf{Alert Recall @ Top-1\% Budget:} Percentage of total laundering value caught within the bank's operational investigation capacity.
     \end{itemize}
@@ -379,12 +434,12 @@ Figure~\ref{fig:ablation_chart} visualizes the performance progression across ou
         \hline
         Source Code Repository & GitHub repository containing complete pipeline, PyTorch Geometric models, FastAPI backend, and React 19 frontend (\url{https://github.com/jaisimha18/graph-based-fraud-detection-gnn-graphsage}). & Completed \\
         \hline
-        Individual Online Certifications &
+        Individual Online Certifications (TEA: 10--20 Hours) &
         \begin{itemize}[noitemsep, leftmargin=*]
-            \item \textbf{Jai Simha:} Graph Neural Networks (Elevify, 15 Hrs)
-            \item \textbf{Phranav:} Introduction to Graph Neural Networks (apxml, 15 Hrs)
+            \item \textbf{Jai Simha:} Deep Learning with TensorFlow and PyTorch (SkillUp, 10 Hrs)
+            \item \textbf{Phranav:} PyTorch for Deep Learning and Computer Vision (Udemy, 14 Hrs)
             \item \textbf{Praneel:} Introduction to Deep Learning \& Neural Networks (Coursera, 15 Hrs)
-            \item \textbf{Adwaith:} Neural Networks with TensorFlow and PyTorch (Udemy, 13 Hrs)
+            \item \textbf{Adwaith Raveendran:} Neural Networks with TensorFlow and PyTorch (Udemy, 13 Hrs)
         \end{itemize} & Completed \\
         \hline
         Group Deliverable 1 & Interactive Full-Stack AML Web Platform (React 19 + FastAPI + Force-Graph 2D). & Completed \\
@@ -400,9 +455,57 @@ Figure~\ref{fig:ablation_chart} visualizes the performance progression across ou
 
 % --- REFERENCES ---
 \vspace{0.2cm}
-\nocite{*}
-\renewcommand{\refname}{\large\bfseries\color{amritaMaroon}References}
-\bibliographystyle{ieeetr}
-\bibliography{ref}
+\begin{thebibliography}{16}
+\bibitem{kipf2017semi}
+T.~N. Kipf and M.~Welling, ``Semi-supervised classification with graph convolutional networks,'' in \emph{International Conference on Learning Representations (ICLR)}, 2017.
+
+\bibitem{hamilton2017inductive}
+W.~L. Hamilton, R.~Ying, and J.~Leskovec, ``Inductive representation learning on large graphs (GraphSAGE),'' in \emph{Advances in Neural Information Processing Systems (NeurIPS)}, vol.~30, pp.~1024--1034, 2017.
+
+\bibitem{velickovic2018graph}
+P.~Veli{\v{c}}kovi{\'{c}}, G.~Cucurull, A.~Casanova, A.~Romero, P.~Li{\`{o}}, and Y.~Bengio, ``Graph attention networks,'' in \emph{International Conference on Learning Representations (ICLR)}, 2018.
+
+\bibitem{weber2019anti}
+M.~Weber, J.~Chen, T.~Suzumura, A.~Pareja, H.~Wang, K.~Pichotta, R.~Ma, and C.~Zhang, ``Anti-money laundering in {Bitcoin}: Experimenting with graph convolutional networks for financial forensics,'' in \emph{KDD Workshop on Applied Data Science for Cybersecurity and Financial Fraud Prevention}, 2019.
+
+\bibitem{ieeecis2019}
+{IEEE-CIS}, ``Credit card fraud detection benchmark (590K transactions),'' \emph{Kaggle Competition Dataset}, 2019.
+
+\bibitem{kim2024temporal}
+Y.~Kim, Y.~Lee, M.~Choe, S.~Oh, and Y.~Lee, ``Temporal graph networks for graph anomaly detection in financial networks,'' \emph{arXiv:2404.00060 (Our Baseline)}, 2024.
+
+\bibitem{tian2023transaction}
+Y.~Tian, G.~Liu, J.~Wang, and M.~Zhou, ``Transaction fraud detection via an adaptive graph neural network (ASA-GNN),'' \emph{arXiv:2307.05633}, 2023.
+
+\bibitem{kumar2024graphsage}
+N.~Kumar and V.~Kataria, ``GraphSAGE vs. Fraudsters: The future of online transaction security,'' \emph{IJIRSET}, vol.~13, no.~11, pp.~14201--14208, 2024.
+
+\bibitem{fraudgt2023}
+{FraudGT Authors}, ``FraudGT: A simple, effective, and efficient graph transformer for financial fraud detection,'' \emph{arXiv:2302.11880}, 2023.
+
+\bibitem{fajri2025applying}
+R.~M. Fajri, F.~Antony, and Rachmansyah, ``Applying few-shot learning with graph neural networks for fraud detection,'' \emph{JESSI}, vol.~6, no.~2, pp.~72--83, 2025.
+
+\bibitem{pan20232sfgl}
+Z.~Pan, G.~Wang, Z.~Li, L.~Chen, Y.~Bian, and Z.~Lai, ``2SFGL: A simple and robust protocol for graph-based fraud detection,'' \emph{arXiv:2310.08335}, 2023.
+
+\bibitem{enhancedgnn2024}
+{Enhanced Pre-trained GNN Authors}, ``Enhanced pre-trained graph neural networks with applications in financial fraud detection,'' \emph{arXiv:2411.05815}, 2024.
+
+\bibitem{recentgnn2025}
+{Recent GNN Advances Authors}, ``Recent advances in graph neural networks for fraud detection,'' \emph{arXiv:2502.13308}, 2025.
+
+\bibitem{graphmethods2025}
+{Graph Methods Authors}, ``Graph-based methods for financial anomaly detection,'' \emph{arXiv:2504.08183}, 2025.
+
+\bibitem{financialfraud2025}
+{Financial Fraud Detection Research Team}, ``Financial fraud detection methods and applications,'' in \emph{Conference Proceedings}, 2025.
+
+\bibitem{altman2023realistic}
+E.~Altman, J.~Blanusa, L.~von Niederh{\"a}usern, B.~Egressy, A.~Anghel, and K.~Atasu, ``Realistic synthetic financial transactions for anti-money laundering models,'' in \emph{NeurIPS Datasets and Benchmarks Track}, vol.~36, 2023.
+
+\bibitem{padhi2021tabular}
+I.~Padhi, Y.~Schiff, I.~Melnyk, M.~Rigotti, Y.~Pruksachatkun, P.~Lincke, et~al., ``Tabular transformers for modeling multivariate time series,'' in \emph{IEEE ICASSP}, pp.~3520--3524, 2021.
+\end{thebibliography}
 
 \end{document}
