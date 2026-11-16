@@ -80,6 +80,15 @@ SAMPLES_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."
 
 AVAILABLE_SAMPLES = [
     {
+        "id": "top_sample.csv",
+        "name": "High-Volume Production Stream (Top Sample)",
+        "description": "130,000 transactions (1.3 Lakhs) modeling connected banking network topology (48K accounts, 40K-node giant component) embedding 199 flagged laundering rings ($100K-$2M volume) alongside 9 unflagged commercial loops and 3,300 isolated peripheral transfers.",
+        "tag": "Production Scale (1.3 Lakh Txs / 208 Rings)",
+        "badgeColor": "cyan",
+        "rows": 130000,
+        "isCycle": True
+    },
+    {
         "id": "sample_transactions.csv",
         "name": "Multi-Bank AML Investigation Stream",
         "description": "60 authentic cross-bank transactions embedding three flagged circular laundering rings (3-hop & 4-hop, $1.44M volume, flagged at 99.7%) and two legitimate unflagged commercial loops ($6.8K volume, unflagged at 1.0% and 2.6%), alongside 45 background banking transfers.",
@@ -116,6 +125,20 @@ AVAILABLE_SAMPLES = [
         "isCycle": True
     }
 ]
+
+# Cached account features dictionary for fast O(1) lookups
+ACCOUNT_FEATURES_CACHE = None
+
+def get_account_features_cache():
+    global ACCOUNT_FEATURES_CACHE
+    if ACCOUNT_FEATURES_CACHE is None:
+        acc_feat_path = os.path.join(PREPROCESSED_DIR, "account_features.csv")
+        if os.path.exists(acc_feat_path):
+            acc_df = pd.read_csv(acc_feat_path)
+            ACCOUNT_FEATURES_CACHE = dict(zip(acc_df["account_id"].astype(str), acc_df.iloc[:, :ACCOUNT_FEAT_DIM].values.astype(np.float32)))
+        else:
+            ACCOUNT_FEATURES_CACHE = {}
+    return ACCOUNT_FEATURES_CACHE
 
 # Helper for cyclic encoding
 def cyclical(series: pd.Series, period: int):
@@ -199,18 +222,12 @@ def run_model_inference_on_df(df: pd.DataFrame):
     
     num_nodes = len(accounts)
     
-    # Try to load existing node features, otherwise use zeros
+    # Load node features from fast cached lookup, otherwise use zeros
     node_features = np.zeros((num_nodes, ACCOUNT_FEAT_DIM), dtype=np.float32)
-    acc_feat_path = os.path.join(PREPROCESSED_DIR, "account_features.csv")
-    if os.path.exists(acc_feat_path):
-        acc_df = pd.read_csv(acc_feat_path)
-        acc_df.set_index("account_id", inplace=True)
-        for i, acc in enumerate(accounts):
-            if acc in acc_df.index:
-                row_val = acc_df.loc[acc]
-                if isinstance(row_val, pd.DataFrame):
-                    row_val = row_val.iloc[0]
-                node_features[i] = row_val.values[:ACCOUNT_FEAT_DIM]
+    acc_cache = get_account_features_cache()
+    for i, acc in enumerate(accounts):
+        if acc in acc_cache:
+            node_features[i] = acc_cache[acc]
                 
     # Build edge index
     edge_index_np = np.zeros((2, len(df)), dtype=np.int64)
@@ -268,17 +285,26 @@ def run_model_inference_on_df(df: pd.DataFrame):
 
     # Identify directed simple cycles (rings) in the uploaded transaction graph
     adj = {}
-    for _, r in df.iterrows():
+    in_deg = {}
+    out_deg = {}
+    for _, r in df[["Account", "Account.1"]].iterrows():
         u, v = str(r["Account"]), str(r["Account.1"])
         adj.setdefault(u, []).append(v)
+        out_deg[u] = out_deg.get(u, 0) + 1
+        in_deg[v] = in_deg.get(v, 0) + 1
+
+    # Prune dead-end nodes that cannot form cycles (nodes with 0 in-degree or 0 out-degree)
+    candidate_nodes = set(u for u in adj.keys() if in_deg.get(u, 0) > 0 and out_deg.get(u, 0) > 0)
+    pruned_adj = {u: [v for v in adj[u] if v in candidate_nodes] for u in candidate_nodes}
 
     seen_cycles = set()
     detected_rings = []
+    MAX_RINGS_LIMIT = 250
 
     def find_cycles(start, curr, path, visited):
-        if len(path) > 7:
+        if len(path) > 7 or len(detected_rings) >= MAX_RINGS_LIMIT:
             return
-        for nxt in adj.get(curr, []):
+        for nxt in pruned_adj.get(curr, []):
             if nxt == start and len(path) >= 2:
                 cycle_tuple = tuple(path)
                 min_idx = cycle_tuple.index(min(cycle_tuple))
@@ -292,10 +318,14 @@ def run_model_inference_on_df(df: pd.DataFrame):
                         "path": ring_nodes,
                         "pathDisplay": " ➔ ".join(ring_nodes),
                     })
+                    if len(detected_rings) >= MAX_RINGS_LIMIT:
+                        return
             elif nxt not in visited and len(path) < 7:
                 find_cycles(start, nxt, path + [nxt], visited | {nxt})
 
-    for n in sorted(adj.keys()):
+    for n in sorted(pruned_adj.keys()):
+        if len(detected_rings) >= MAX_RINGS_LIMIT:
+            break
         find_cycles(n, n, [n], {n})
 
     # Set of directed edges (u, v) in any detected ring
@@ -385,9 +415,31 @@ def run_model_inference_on_df(df: pd.DataFrame):
         ring["isLaundering"] = bool(ring["flaggedEdges"] > 0)
         ring["avgPrediction"] = round(float(np.mean([l["prediction"] for l in matching_links])), 4) if matching_links else 0.0
         
+    # For large-scale streams (e.g. top_sample.csv with 130K rows):
+    # Keep full transaction metrics in stats, and sample visual canvas links to prevent browser DOM freezing
+    visual_links = links_out
+    visual_nodes = nodes_out
+    is_visual_sampled = False
+
+    if len(links_out) > 3000:
+        is_visual_sampled = True
+        priority_links = [l for l in links_out if l.get("inCycle") or l.get("isFraud")]
+        other_links = [l for l in links_out if not l.get("inCycle") and not l.get("isFraud")]
+        
+        target_visual_count = 1600
+        remaining_capacity = max(target_visual_count - len(priority_links), 400)
+        sampled_other = other_links[:remaining_capacity]
+        
+        visual_links = priority_links + sampled_other
+        visual_accs = set(l["source"] for l in visual_links).union(set(l["target"] for l in visual_links))
+        visual_nodes = [{"id": str(acc)} for acc in visual_accs]
+
     return {
-        "nodes": nodes_out,
-        "links": links_out,
+        "nodes": visual_nodes,
+        "links": visual_links,
+        "isVisualSampled": is_visual_sampled,
+        "totalTransactions": len(df),
+        "totalVisualLinks": len(visual_links),
         "threshold": float(best_thresh),
         "recommendedThreshold": 0.85,
         "actualFraudCount": actual_fraud,
