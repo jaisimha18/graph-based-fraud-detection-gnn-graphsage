@@ -26,6 +26,30 @@
 \definecolor{borderGrey}{HTML}{E2E8F0}
 \definecolor{refVenue}{RGB}{196, 101, 130}
 
+% --- Vector Document Icon for References (Pure TikZ, Zero Image Dependency) ---
+\newcommand{\refDocIcon}{%
+    \begin{tikzpicture}[baseline=0.08ex]
+        \draw[fill=white, draw=slateGrey!80, rounded corners=0.5pt, line width=0.5pt] (0,0) rectangle (0.32cm, 0.42cm);
+        \fill[amritaMaroon] (0.05cm, 0.30cm) rectangle (0.27cm, 0.36cm);
+        \draw[slateGrey!70, line width=0.4pt] (0.05cm, 0.22cm) -- (0.27cm, 0.22cm);
+        \draw[slateGrey!70, line width=0.4pt] (0.05cm, 0.14cm) -- (0.27cm, 0.14cm);
+        \draw[slateGrey!70, line width=0.4pt] (0.05cm, 0.06cm) -- (0.18cm, 0.06cm);
+    \end{tikzpicture}%
+}
+
+\newcommand{\referenceEntry}[3]{%
+    \noindent%
+    \begin{minipage}[t]{0.035\textwidth}%
+        \vspace{0pt}\refDocIcon%
+    \end{minipage}\hfill%
+    \begin{minipage}[t]{0.955\textwidth}%
+        \vspace{0pt}%
+        \textcolor{amritaMaroon}{\textbf{#1}}\\%
+        ``#2''\\%
+        \textcolor{refVenue}{#3}%
+    \end{minipage}\par\vspace{0.07cm}%
+}
+
 % --- Theme Setup ---
 \usetheme{Madrid}
 \usecolortheme[named=amritaMaroon]{structure}
@@ -51,7 +75,7 @@
 
     {\large \textbf{\textcolor{amritaMaroon}{Inductive Graph Learning for Coordinated Fraud Detection: Extending GraphSAGE to Detect Circular Transaction Patterns in Streaming Financial Networks}}} \\
     \vspace{0.08cm}
-    {\footnotesize \textbf{23CSE498 -- Project Phase II (External Review)} \quad | \quad \textbf{Team Number: [113]}} \\
+    {\footnotesize \textbf{23CSE498 -- Project Phase II (External Review)} \quad | \quad \textbf{Team Number: 113}} \\
     \vspace{0.15cm}
 
     % Student Table
@@ -100,8 +124,8 @@
 % =========================================================================
 \section{Problem \& Solution Design}
 
-% --- SLIDE 3: PROBLEM STATEMENT & RESEARCH GAP REFINEMENT ---
-\begin{frame}{1. Problem Statement \& Research Gap Refinement}
+% --- SLIDE 3: PROBLEM STATEMENT & RESEARCH GAP ---
+\begin{frame}{1. Problem Statement \& Research Gap}
     \framesubtitle{Why Traditional Fraud Detection Fails on Circular Money Laundering}
     \vspace{-0.35cm}
     \begin{alertblock}{Problem Statement}
@@ -376,11 +400,17 @@
         \column{0.50\textwidth}
         \begin{block}{Phase 3B: Cycle-Aware Attention Layer}
             \scriptsize
-            \textbf{Cycle Attention Weight:}
-            $$\alpha_{ji}^{(l)} = \frac{\exp\left(\text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_i^{(l-1)} \parallel \mathbf{W}\mathbf{h}_j^{(l-1)} \parallel \gamma \cdot \mathbf{c}_{ji}]\right)\right)}{\sum_{k \in \mathcal{N}(i)} \exp\left(\text{LeakyReLU}\left(\mathbf{a}^T [\mathbf{W}\mathbf{h}_i^{(l-1)} \parallel \mathbf{W}\mathbf{h}_k^{(l-1)} \parallel \gamma \cdot \mathbf{c}_{ki}]\right)\right)}$$
-            \textbf{Updated Node Embedding:}
+            \textbf{1. Cycle Attention Weight ($e_{ji} \to \alpha_{ji}^{(l)}$):}
+            \vspace{-0.15cm}
+            \resizebox{0.95\linewidth}{!}{$e_{ji} = \text{LeakyReLU}\left(\mathbf{a}^T \left[\mathbf{W}\mathbf{h}_i^{(l-1)} \parallel \mathbf{W}\mathbf{h}_j^{(l-1)} \parallel \gamma \cdot \mathbf{c}_{ji}\right]\right)$}
+            \vspace{-0.15cm}
+            $$\alpha_{ji}^{(l)} = \frac{\exp(e_{ji})}{\sum_{k \in \mathcal{N}(i)} \exp(e_{ki})}$$
+            \vspace{-0.15cm}
+            \textbf{2. Updated Node Embedding:}
+            \vspace{-0.15cm}
             $$\mathbf{h}_i^{(l)} = \sigma\left(\mathbf{W}_{\text{self}} \mathbf{h}_i^{(l-1)} + \mathbf{W}_{\text{neigh}} \sum_{j \in \mathcal{N}(i)} \alpha_{ji}^{(l)} \mathbf{h}_j^{(l-1)}\right)$$
-            \textbf{Why Needed?} Standard mean aggregation treats all neighbors equally. Attention assigns higher weights to edges that form cycles, preventing cycle signals from being diluted by normal traffic.
+            \vspace{-0.15cm}
+            \textbf{Why Needed?} Assigns higher weights ($\alpha_{ji}$) to circular transaction edges, preventing cycle fraud signals from being diluted by normal traffic.
         \end{block}
     \end{columns}
 \end{frame}
@@ -424,14 +454,15 @@
     \framesubtitle{Evaluation on Multi-Hop Circular, Fan-Out, and Scatter-Gather Networks}
     \vspace{-0.3cm}
     \begin{columns}[T]
-        \column{0.52\textwidth}
+        \column{0.53\textwidth}
         \centering
-        \vspace{0.05cm}
-        \scriptsize
-        \renewcommand{\arraystretch}{1.08}
+        \vspace{0.12cm}
+        \resizebox{\linewidth}{!}{%
+        \renewcommand{\arraystretch}{1.12}
+        \setlength{\tabcolsep}{4pt}
         \begin{tabular}{lcccc}
             \toprule
-            \textbf{Laundering Pattern} & \textbf{Any} & \textbf{Maj.} & \textbf{Full Ring} & \textbf{Cov.} \\
+            \textbf{Laundering Pattern} & \textbf{Any Edge} & \textbf{Majority} & \textbf{Full Ring} & \textbf{Coverage} \\
             \midrule
             \textbf{Cycles (Loops)} & 96.4\% & 96.4\% & \textbf{85.7\%} & 93.9\% \\
             \textbf{Fan-Out (Chains)} & 100.0\% & 96.4\% & \textbf{92.9\%} & 96.4\% \\
@@ -439,9 +470,10 @@
             \midrule
             \textbf{Overall Average} & \textbf{98.7\%} & \textbf{98.3\%} & \textbf{85.2\%} & \textbf{95.2\%} \\
             \bottomrule
-        \end{tabular}
+        \end{tabular}%
+        }
 
-        \column{0.46\textwidth}
+        \column{0.45\textwidth}
         \begin{block}{Pattern Detection Discussion}
             \scriptsize
             \begin{itemize}\setlength{\itemsep}{1.5pt}\setlength{\parskip}{0pt}
@@ -684,7 +716,7 @@
         \textbf{Losavio et al.} \newline arXiv:2407.10131 & IBM AML Synthetic \newline (Hub-dominated graphs) & SALT-GNN: Attention over \newline dense merchant accounts & GraphSAGE: PR-AUC 0.518 \newline SALT-GNN: PR-AUC 0.562 & Bounded sampling $[15, 10]$ stabilizes hubs; no cycle attention. \\
         \addlinespace[2pt]
         \rowcolor{cardBg}
-        \textbf{OUR WORK} \newline \textbf{(Team 113)} & \textbf{IBM AML \texttt{HI-Small}} \newline (5.18M txs, 518K accts) & \textbf{Cycle-Aware GraphSAGE} \newline + RW Cycles + Attention & \textbf{PR-AUC: 0.5759 (+78\%)} \newline \textbf{Full Ring Recall: 85.2\%} & \textbf{Overcomes signal dilution} by weighting circular loops higher ($\alpha_{ji}$). \\
+        \textbf{OUR WORK} \newline \textbf{Team 113} & \textbf{IBM AML \texttt{HI-Small}} \newline (5.18M txs, 518K accts) & \textbf{Cycle-Aware GraphSAGE} \newline + RW Cycles + Attention & \textbf{PR-AUC: 0.5759 (+78\%)} \newline \textbf{Full Ring Recall: 85.2\%} & \textbf{Overcomes signal dilution} by weighting circular loops higher ($\alpha_{ji}$). \\
         \bottomrule
     \end{tabularx}
 \end{frame}
@@ -723,90 +755,28 @@
 % --- SLIDE 21: REFERENCES (1/2) ---
 \begin{frame}{References (1/2)}
     \vspace{-0.35cm}
-    \fontsize{6.5pt}{7.5pt}\selectfont
-    \begin{itemize}\setlength{\itemsep}{1.5pt}\setlength{\parskip}{0pt}
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Kipf, T., \& Welling, M. (2016).}\\
-        ``Semi-supervised Classification with Graph Convolutional Networks.''\\
-        \textcolor{refVenue}{ICLR.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Hamilton, W., Ying, Z., \& Leskovec, J. (2017).}\\
-        ``Inductive Representation Learning on Large Graphs (GraphSAGE).''\\
-        \textcolor{refVenue}{Advances in Neural Information Processing Systems (NeurIPS).}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Veli\v{c}kovi\'{c}, P., Cucurull, G., Casanova, A., Romero, A., Lio, P., \& Bengio, Y. (2017).}\\
-        ``Graph Attention Networks.''\\
-        \textcolor{refVenue}{ICLR.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Weber, M., et al. (2019).}\\
-        ``Anti-Money Laundering in Bitcoin: Experimenting with Graph Convolutional Networks.''\\
-        \textcolor{refVenue}{arXiv:1908.08524 (Elliptic Dataset).}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{IEEE-CIS Fraud Detection Dataset. (2019).}\\
-        ``Credit Card Fraud Detection Benchmark (590K transactions).''\\
-        \textcolor{refVenue}{Kaggle Competition Dataset.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Kim, Y., Lee, Y., Choe, M., Oh, S., \& Lee, Y. (2024).}\\
-        ``Temporal Graph Networks for Graph Anomaly Detection in Financial Networks.''\\
-        \textcolor{refVenue}{arXiv:2404.00060 (Our Baseline).}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Tian, Y., Liu, G., Wang, J., \& Zhou, M. (2023).}\\
-        ``Transaction Fraud Detection via an Adaptive Graph Neural Network (ASA-GNN).''\\
-        \textcolor{refVenue}{arXiv:2307.05633v1.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Kumar, N., \& Kataria, V. (2024).}\\
-        ``GraphSAGE vs. Fraudsters: The Future of Online Transaction Security.''\\
-        \textcolor{refVenue}{IJIRSET, 13(11) (97.5\% Accuracy).}
-    \end{itemize}
+    \fontsize{6.5pt}{7.6pt}\selectfont
+    \referenceEntry{Kipf, T., \& Welling, M. (2016).}{Semi-supervised Classification with Graph Convolutional Networks.}{ICLR.}
+    \referenceEntry{Hamilton, W., Ying, Z., \& Leskovec, J. (2017).}{Inductive Representation Learning on Large Graphs (GraphSAGE).}{Advances in Neural Information Processing Systems (NeurIPS).}
+    \referenceEntry{Veli\v{c}kovi\'{c}, P., Cucurull, G., Casanova, A., Romero, A., Lio, P., \& Bengio, Y. (2017).}{Graph Attention Networks.}{ICLR.}
+    \referenceEntry{Weber, M., et al. (2019).}{Anti-Money Laundering in Bitcoin: Experimenting with Graph Convolutional Networks.}{arXiv:1908.08524 (Elliptic Dataset).}
+    \referenceEntry{IEEE-CIS Fraud Detection Dataset. (2019).}{Credit Card Fraud Detection Benchmark (590K transactions).}{Kaggle Competition Dataset.}
+    \referenceEntry{Kim, Y., Lee, Y., Choe, M., Oh, S., \& Lee, Y. (2024).}{Temporal Graph Networks for Graph Anomaly Detection in Financial Networks.}{arXiv:2404.00060 (Our Baseline).}
+    \referenceEntry{Tian, Y., Liu, G., Wang, J., \& Zhou, M. (2023).}{Transaction Fraud Detection via an Adaptive Graph Neural Network (ASA-GNN).}{arXiv:2307.05633v1.}
+    \referenceEntry{Kumar, N., \& Kataria, V. (2024).}{GraphSAGE vs. Fraudsters: The Future of Online Transaction Security.}{IJIRSET, 13(11) (97.5\% Accuracy).}
 \end{frame}
 
 % --- SLIDE 22: REFERENCES (2/2) ---
 \begin{frame}{References (2/2)}
     \vspace{-0.35cm}
-    \fontsize{6.5pt}{7.5pt}\selectfont
-    \begin{itemize}\setlength{\itemsep}{2.5pt}\setlength{\parskip}{0pt}
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{FraudGT Authors. (2023).}\\
-        ``FraudGT: A Simple, Effective, and Efficient Graph Transformer for Financial Fraud Detection.''\\
-        \textcolor{refVenue}{arXiv:2302.11880v2.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Fajri, R. M., Antony, F., \& Rachmansyah. (2025).}\\
-        ``Applying Few-Shot Learning with Graph Neural Networks For Fraud Detection.''\\
-        \textcolor{refVenue}{JESSI, 6(2), 72--83.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Pan, Z., Wang, G., Li, Z., Chen, L., Bian, Y., \& Lai, Z. (2023).}\\
-        ``2SFGL: A Simple And Robust Protocol For Graph-Based Fraud Detection.''\\
-        \textcolor{refVenue}{arXiv:2310.08335v1.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Enhanced Pre-trained GNN Authors. (2024).}\\
-        ``Enhanced Pre-Trained Graph Neural Networks with Applications in Financial Fraud Detection.''\\
-        \textcolor{refVenue}{arXiv:2411.05815v2.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Recent GNN Advances Authors. (2025).}\\
-        ``Recent Advances in Graph Neural Networks for Fraud Detection.''\\
-        \textcolor{refVenue}{arXiv:2502.13308v3.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Graph Methods Authors. (2025).}\\
-        ``Graph-Based Methods for Financial Anomaly Detection.''\\
-        \textcolor{refVenue}{arXiv:2504.08183v1.}
-
-        \item[\raisebox{-0.1em}{\includegraphics[height=0.95em]{ref_icon.png}}]
-        \textcolor{amritaMaroon}{Financial Fraud Detection Research Team. (2025).}\\
-        ``Financial Fraud Detection Methods and Applications.''\\
-        \textcolor{refVenue}{Conference Proceedings.}
-    \end{itemize}
+    \fontsize{6.5pt}{7.6pt}\selectfont
+    \referenceEntry{FraudGT Authors. (2023).}{FraudGT: A Simple, Effective, and Efficient Graph Transformer for Financial Fraud Detection.}{arXiv:2302.11880v2.}
+    \referenceEntry{Fajri, R. M., Antony, F., \& Rachmansyah. (2025).}{Applying Few-Shot Learning with Graph Neural Networks For Fraud Detection.}{JESSI, 6(2), 72--83.}
+    \referenceEntry{Pan, Z., Wang, G., Li, Z., Chen, L., Bian, Y., \& Lai, Z. (2023).}{2SFGL: A Simple And Robust Protocol For Graph-Based Fraud Detection.}{arXiv:2310.08335v1.}
+    \referenceEntry{Enhanced Pre-trained GNN Authors. (2024).}{Enhanced Pre-Trained Graph Neural Networks with Applications in Financial Fraud Detection.}{arXiv:2411.05815v2.}
+    \referenceEntry{Recent GNN Advances Authors. (2025).}{Recent Advances in Graph Neural Networks for Fraud Detection.}{arXiv:2502.13308v3.}
+    \referenceEntry{Graph Methods Authors. (2025).}{Graph-Based Methods for Financial Anomaly Detection.}{arXiv:2504.08183v1.}
+    \referenceEntry{Financial Fraud Detection Research Team. (2025).}{Financial Fraud Detection Methods and Applications.}{Conference Proceedings.}
 \end{frame}
 
 % --- SLIDE 23: THANK YOU ---
